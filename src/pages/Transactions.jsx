@@ -1,28 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import TransactionForm from '../components/transactions/TransactionForm';
 import TransactionDetails from '../components/transactions/TransactionDetails';
-import { Plus, Search, Download, TrendingUp, TrendingDown, Package, Eye, Edit } from 'lucide-react';
+import { Plus, Search, TrendingUp, TrendingDown, Package, Eye, Edit, Trash2, ShoppingCart } from 'lucide-react';
 import supabase from '../services/supabase';
-import { useAuthStore } from '../store/useAuthStore'; // Updated to use the correct store
+import { useAuthStore } from '../store/useAuthStore';
 
 const Transactions = () => {
-  const { role, loading: authLoading } = useAuthStore(); // Updated to use role instead of userRole
+  const { role, loading: authLoading } = useAuthStore();
   const [showAddForm, setShowAddForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [selectedTransactions, setSelectedTransactions] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
-    // Fetch transactions on component mount
     fetchTransactions();
   }, []);
 
-  // Fetch transactions with product and base information
   const fetchTransactions = async () => {
     setLoading(true);
     setError(null);
@@ -35,7 +36,6 @@ const Transactions = () => {
           bases:base_id(name)
         `)
         .order('created_at', { ascending: false });
-        console.log("role", role);
 
       if (error) throw error;
       setTransactions(data || []);
@@ -46,7 +46,37 @@ const Transactions = () => {
     }
   };
 
-  // Transaction types for filtering
+  const handleDelete = async () => {
+    if (!selectedTransactions.length) return;
+    setDeleteLoading(true);
+    
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .in('id', selectedTransactions.map(t => t.id));
+
+      if (error) throw error;
+      
+      setTransactions(transactions.filter(t => !selectedTransactions.map(s => s.id).includes(t.id)));
+      setSelectedTransactions([]);
+      setShowDeleteConfirm(false);
+    } catch (err) {
+      setError(err.message || 'Failed to delete transactions');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const toggleTransactionSelection = (transaction) => {
+    setSelectedTransactions(prev => {
+      if (prev.some(t => t.id === transaction.id)) {
+        return prev.filter(t => t.id !== transaction.id);
+      }
+      return [...prev, transaction];
+    });
+  };
+
   const transactionTypes = [
     { id: 'all', name: 'All Transactions' },
     { id: 'sale', name: 'Sales' },
@@ -56,7 +86,6 @@ const Transactions = () => {
     { id: 'return', name: 'Returns' }
   ];
 
-  // Filter transactions based on search and type
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = 
       transaction.products?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -65,7 +94,6 @@ const Transactions = () => {
     return matchesSearch && matchesType;
   });
 
-  // Helper functions
   const getTypeIcon = (type) => {
     switch (type) {
       case 'sale': return <TrendingUp className="w-4 h-4 text-green-500" />;
@@ -101,7 +129,6 @@ const Transactions = () => {
     });
   };
 
-  // Calculate summary stats
   const summaryStats = transactions.reduce((acc, transaction) => {
     if (transaction.type === 'sale') {
       acc.sales += transaction.total_amount;
@@ -117,9 +144,8 @@ const Transactions = () => {
   }, { sales: 0, purchases: 0, stockMovements: 0, profit: 0 });
 
   return (
-    <div className="md:ml-32 min-h-screen bg-slate-50 dark:bg-slate-900 p-4 md:p-6 space-y-6">
-      {/* Header Section */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div className="min-h-screen overflow-y-auto bg-slate-50 dark:bg-slate-900 p-4 md:p-6 space-y-6">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
             Paint Transactions
@@ -128,12 +154,7 @@ const Transactions = () => {
             Track all paint sales, purchases, and stock movements
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-            <Download className="w-4 h-4" />
-            Export
-          </button>
-          {/* Only show "Add New Transaction" if the user is an admin or store manager */}
+        <div className="flex flex-wrap items-center gap-3">
           {role && (role === 'admin' || role === 'store_manager') && (
             <button
               onClick={() => setShowAddForm(true)}
@@ -143,11 +164,19 @@ const Transactions = () => {
               New Transaction
             </button>
           )}
+          {role === 'admin' && selectedTransactions.length > 0 && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-all duration-200"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete Selected
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Transaction Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl">
@@ -205,10 +234,8 @@ const Transactions = () => {
         </div>
       </div>
 
-      {/* Filters and Search */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          {/* Search */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -221,9 +248,7 @@ const Transactions = () => {
               />
             </div>
           </div>
-
-          {/* Type Filter */}
-          <div className="md:w-64">
+          <div className="w-full sm:w-48 md:w-64">
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
@@ -239,7 +264,6 @@ const Transactions = () => {
         </div>
       </div>
 
-      {/* Loading/Error State */}
       {(loading || authLoading) && (
         <div className="flex justify-center items-center py-12">
           <span className="text-lg text-slate-500 dark:text-slate-400 animate-pulse">Loading transactions...</span>
@@ -251,35 +275,53 @@ const Transactions = () => {
         </div>
       )}
 
-      {/* Transactions Table */}
       {!loading && !error && (
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+        <div className="w-full overflow-x-auto scrollbar-thin scrollbar-thumb-slate-400 dark:scrollbar-thumb-slate-600 scrollbar-track-slate-100 dark:scrollbar-track-slate-800 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+          <div className="inline-block min-w-full">
+            <table className="w-full table-fixed">
               <thead className="bg-slate-50 dark:bg-slate-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  {role === 'admin' && (
+                    <th className="px-2 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider w-10">
+                      <input
+                        type="checkbox"
+                        checked={selectedTransactions.length === filteredTransactions.length && filteredTransactions.length > 0}
+                        onChange={() => {
+                          if (selectedTransactions.length === filteredTransactions.length) {
+                            setSelectedTransactions([]);
+                          } else {
+                            setSelectedTransactions([...filteredTransactions]);
+                          }
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </th>
+                  )}
+                  <th className="px-2 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[18%]">
                     Transaction
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <th className="px-2 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[18%]">
                     Product
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <th className="px-2 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[18%]">
+                    Size
+                  </th>
+                  <th className="px-2 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[14%]">
                     Base
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Quantity
+                  <th className="px-2 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[10%]">
+                    Qty
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <th className="px-2 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[14%]">
                     Total
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <th className="px-2 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[14%]">
                     Date
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <th className="px-2 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[12%]">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <th className="px-2 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[14%]">
                     Actions
                   </th>
                 </tr>
@@ -287,39 +329,51 @@ const Transactions = () => {
               <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
                 {filteredTransactions.map((transaction) => (
                   <tr key={transaction.id} className="hover:bg-slate-50 dark:hover:bg-slate-700">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    {role === 'admin' && (
+                      <td className="px-2 py-4 whitespace-nowrap w-10">
+                        <input
+                          type="checkbox"
+                          checked={selectedTransactions.some(t => t.id === transaction.id)}
+                          onChange={() => toggleTransactionSelection(transaction)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </td>
+                    )}
+                    <td className="px-2 py-4 whitespace-nowrap w-[18%]">
                       <div className="flex items-center">
                         {getTypeIcon(transaction.type)}
-                        <div className="ml-3">
-                          <div className="text-sm font-medium text-slate-900 dark:text-white">
+                        <div className="ml-2 truncate">
+                          <div className="text-sm font-medium text-slate-900 dark:text-white truncate">
                             {transaction.reference}
                           </div>
-                          <div className="text-sm text-slate-500 dark:text-slate-400 capitalize">
+                          <div className="text-sm text-slate-500 dark:text-slate-400 capitalize truncate">
                             {transaction.type.replace('_', ' ')}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-slate-900 dark:text-white">
+                    <td className="px-2 py-4 whitespace-nowrap w-[18%]">
+                      <div className="text-sm font-medium text-slate-900 dark:text-white truncate">
                         {transaction.products?.name}
                       </div>
-                      <div className="text-sm text-slate-500 dark:text-slate-400">
+                    </td>
+                    <td className="px-2 py-4 whitespace-nowrap w-[18%]">
+                      <div className="text-sm text-slate-900 truncate">
                         {transaction.products?.size}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-slate-900 dark:text-white">
+                    <td className="px-2 py-4 whitespace-nowrap w-[14%]">
+                      <div className="text-sm text-slate-900 dark:text-white truncate">
                         {transaction.bases?.name}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-2 py-4 whitespace-nowrap w-[10%]">
                       <div className="text-sm text-slate-900 dark:text-white">
                         {transaction.quantity}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className={`text-sm font-medium ${
+                    <td className="px-2 py-4 whitespace-nowrap w-[14%]">
+                      <div className={`text-sm font-medium truncate ${
                         transaction.type === 'purchase' || transaction.type === 'stock_out' 
                           ? 'text-red-600 dark:text-red-400' 
                           : 'text-slate-900 dark:text-white'
@@ -327,41 +381,50 @@ const Transactions = () => {
                         {formatCurrency(transaction.total_amount)}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-slate-900 dark:text-white">
+                    <td className="px-2 py-4 whitespace-nowrap w-[14%]">
+                      <div className="text-sm text-slate-900 dark:text-white truncate">
                         {formatDate(transaction.transaction_date)}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(transaction.status)}`}>
+                    <td className="px-2 py-4 whitespace-nowrap w-[12%]">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium truncate ${getStatusColor(transaction.status)}`}>
                         {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex items-center gap-2">
-                      {/* View Button with Icon */}
+                    <td className="px-2 py-4 whitespace-nowrap text-right text-sm font-medium flex items-center gap-1 w-[14%]">
                       <button
                         onClick={() => {
                           setSelectedTransaction(transaction);
                           setShowDetails(true);
                         }}
-                        className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-md transition-colors"
+                        className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-md transition-colors"
                         title="View details"
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      
-                      {/* Edit Button with Icon - Conditionally rendered for 'admin' role */}
                       {role === 'admin' && (
-                        <button
-                          onClick={() => {
-                            setSelectedTransaction(transaction);
-                            setShowEditForm(true);
-                          }}
-                          className="p-2 text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
-                          title="Edit transaction"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
+                        <>
+                          <button
+                            onClick={() => {
+                              setSelectedTransaction(transaction);
+                              setShowEditForm(true);
+                            }}
+                            className="p-1 text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
+                            title="Edit transaction"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedTransactions([transaction]);
+                              setShowDeleteConfirm(true);
+                            }}
+                            className="p-1 text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                            title="Delete transaction"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
                       )}
                     </td>
                   </tr>
@@ -372,7 +435,6 @@ const Transactions = () => {
         </div>
       )}
 
-      {/* Add Transaction Modal */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -384,7 +446,6 @@ const Transactions = () => {
         </div>
       )}
 
-      {/* Edit Transaction Modal */}
       {showEditForm && selectedTransaction && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -400,7 +461,6 @@ const Transactions = () => {
         </div>
       )}
 
-      {/* Transaction Details Modal */}
       {showDetails && selectedTransaction && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <TransactionDetails
@@ -410,6 +470,78 @@ const Transactions = () => {
               setSelectedTransaction(null);
             }}
           />
+        </div>
+      )}
+
+{!loading && !error && filteredTransactions.length === 0 && (
+        <div className="text-center py-12">
+          <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+            <ShoppingCart className="w-12 h-12 text-slate-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">No transactions found</h3>
+          <p className="text-slate-600 dark:text-slate-400 mb-4">
+            Try adjusting your search criteria or add a new transaction.
+          </p>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-xl transition-all duration-200"
+          >
+            <Plus className="w-4 h-4" />
+            Add Transaction
+          </button>
+        </div>
+      )}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 max-w-md w-full">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-xl">
+                  <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-red-600 dark:text-red-400">Confirm Delete</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mt-1">This action cannot be undone</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <p className="text-gray-700 dark:text-gray-300 mb-6">
+                Are you sure you want to delete {selectedTransactions.length} transaction{selectedTransactions.length > 1 ? 's' : ''}?
+                This will permanently remove the selected transaction{selectedTransactions.length > 1 ? 's' : ''}.
+              </p>
+              
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setSelectedTransactions([]);
+                  }}
+                  className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-150"
+                  disabled={deleteLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-all duration-150"
+                  disabled={deleteLoading}
+                >
+                  {deleteLoading ? (
+                    <span className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Deleting...
+                    </span>
+                  ) : (
+                    `Delete ${selectedTransactions.length} Transaction${selectedTransactions.length > 1 ? 's' : ''}`
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

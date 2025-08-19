@@ -6,7 +6,7 @@ import {
 
 // Recharts-based StockChart with real data support
 
-const StockChart = ({ filter = 'both', transactions = [], stockFilter = 'month' }) => {
+const StockChart = ({ filter = 'both', transactions = [], period = 'month' }) => {
   // Generate chart data from real transactions with period filtering
   const generateChartData = () => {
     if (!transactions || transactions.length === 0) {
@@ -16,7 +16,7 @@ const StockChart = ({ filter = 'both', transactions = [], stockFilter = 'month' 
       const outwardData = [80, 110, 70, 120, 60, 90, 100, 85];
 
       return months.map((month, idx) => ({
-        month,
+        period: month,
         Inward: inwardData[idx],
         Outward: outwardData[idx],
       }));
@@ -26,15 +26,26 @@ const StockChart = ({ filter = 'both', transactions = [], stockFilter = 'month' 
     const now = new Date();
     let startDate;
     
-    switch (stockFilter) {
-      case 'day':
+    switch (period) {
+      case 'today':
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         break;
+      case 'yesterday':
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        startDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+        break;
       case 'week':
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const weekStart = new Date(now);
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        startDate = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate());
         break;
       case 'month':
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case 'quarter':
+        const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
+        startDate = new Date(now.getFullYear(), quarterStartMonth, 1);
         break;
       case 'year':
         startDate = new Date(now.getFullYear(), 0, 1);
@@ -52,7 +63,7 @@ const StockChart = ({ filter = 'both', transactions = [], stockFilter = 'month' 
     // Group transactions by appropriate time period
     let groupedData = {};
     
-    if (stockFilter === 'day') {
+    if (period === 'today') {
       // Group by hours for daily view
       filteredTransactions.forEach(transaction => {
         const date = new Date(transaction.created_at);
@@ -69,7 +80,24 @@ const StockChart = ({ filter = 'both', transactions = [], stockFilter = 'month' 
           groupedData[hourKey].Outward += transaction.quantity || 0;
         }
       });
-    } else if (stockFilter === 'week') {
+    } else if (period === 'yesterday') {
+      // Group by hours for yesterday view
+      filteredTransactions.forEach(transaction => {
+        const date = new Date(transaction.created_at);
+        const hour = date.getHours();
+        const hourKey = `${hour}:00`;
+        
+        if (!groupedData[hourKey]) {
+          groupedData[hourKey] = { Inward: 0, Outward: 0 };
+        }
+        
+        if (['stock_in', 'purchase'].includes(transaction.type)) {
+          groupedData[hourKey].Inward += transaction.quantity || 0;
+        } else if (['stock_out', 'sale'].includes(transaction.type)) {
+          groupedData[hourKey].Outward += transaction.quantity || 0;
+        }
+      });
+    } else if (period === 'week') {
       // Group by days for weekly view
       filteredTransactions.forEach(transaction => {
         const date = new Date(transaction.created_at);
@@ -86,7 +114,7 @@ const StockChart = ({ filter = 'both', transactions = [], stockFilter = 'month' 
         }
       });
     } else {
-      // Group by months for monthly/yearly view
+      // Group by months for monthly/quarterly/yearly view
       filteredTransactions.forEach(transaction => {
         const date = new Date(transaction.created_at);
         const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
@@ -113,10 +141,10 @@ const StockChart = ({ filter = 'both', transactions = [], stockFilter = 'month' 
         Outward: Math.round(data.Outward),
       }))
       .sort((a, b) => {
-        if (stockFilter === 'day') {
+        if (period === 'today' || period === 'yesterday') {
           // Sort by hour
           return parseInt(a.period.split(':')[0]) - parseInt(b.period.split(':')[0]);
-        } else if (stockFilter === 'week') {
+        } else if (period === 'week') {
           // Sort by day of week
           const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
           return days.indexOf(a.period) - days.indexOf(b.period);

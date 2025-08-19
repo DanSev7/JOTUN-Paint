@@ -124,7 +124,7 @@ const Products = () => {
 
   const statusFilters = [
     { id: 'all', name: 'All Status' },
-    { id: 'in_stock', name: 'Good' },
+    { id: 'in_stock', name: 'In Stock' },
     { id: 'low_stock', name: 'Low Stock' },
     { id: 'out_of_stock', name: 'Out of Stock' }
   ];
@@ -176,7 +176,7 @@ const Products = () => {
   const getStatusText = (status) => {
     switch (status) {
       case 'in_stock':
-        return 'Good';
+        return 'In Stock';
       case 'low_stock':
         return 'Low Stock';
       case 'out_of_stock':
@@ -219,10 +219,6 @@ const Products = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200 shadow-sm hover:shadow-md">
-            <Download className="w-4 h-4" />
-            Export
-          </button>
           <button
             onClick={() => {
               setSelectedProduct(null);
@@ -481,11 +477,11 @@ const Products = () => {
               <div className="mb-4">
                 <div className="flex items-center justify-between text-sm mb-2">
                   <span className="text-slate-600 dark:text-slate-400">Total Stock Level</span>
-                  <span className="font-medium text-blue-700 dark:text-white">
-                    {product.totalStock} pcs
+                  <span className="font-medium text-slate-900 dark:text-white">
+                    {product.totalStock} / {product.min_stock_level} pcs
                   </span>
                 </div>
-                {/* <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
                   <div
                     className={`h-2 rounded-full transition-all duration-500 ${
                       stockLevel < 25 ? 'bg-red-500' : 
@@ -494,8 +490,7 @@ const Products = () => {
                     }`}
                     style={{ width: `${stockLevel}%` }}
                   ></div>
-                </div> */}
-                <hr className="my-2 border-slate-600 dark:border-slate-700" />
+                </div>
               </div>
 
               {/* Product Details */}

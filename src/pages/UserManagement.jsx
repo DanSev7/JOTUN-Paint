@@ -160,7 +160,7 @@ const UserManagement = () => {
   const isLoading = loading || authLoading;
 
   return (
-    <div className="md:ml-32 min-h-screen bg-slate-50 dark:bg-slate-900 p-4 md:p-6 space-y-6">
+    <div className="md:ml-4 min-h-screen overflow-y-auto bg-slate-50 dark:bg-slate-900 p-4 md:p-6 space-y-6">
       <div className="w-full max-w-none px-4 sm:px-6 lg:px-8 py-8">
         {/* Header Section */}
         <div className="mb-8">

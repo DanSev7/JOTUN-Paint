@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Package, Trash2, DollarSign, Hash, Tag, FileText, TrendingUp, Paintbrush, AlertTriangle, Plus, Minus, Eye } from 'lucide-react';
+import { X, Save, Package, Trash2, DollarSign, Hash, Tag, TrendingUp, Paintbrush, AlertTriangle, Plus, Minus, Eye } from 'lucide-react';
 import supabase from '../../services/supabase';
 
 const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
@@ -8,25 +8,23 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
     code: product?.code || '',
     category: product?.category || '',
     size: product?.size || '3L',
-    description: product?.description || '',
     image_url: product?.image_url || '',
-    min_stock_level: product?.min_stock_level || 0,
   });
-  const [basePrices, setBasePrices] = useState([]); // [{base_id, unit_price, stock_level}]
+  const [basePrices, setBasePrices] = useState([]); // [{base_id, unit_price, stock_level, min_stock_level, max_stock_level}]
   const [selectedBase, setSelectedBase] = useState('');
   const [bases, setBases] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const sizes = ['3L', '5L', '10L'];
+  const sizes = ['3L', '10L'];
 
   const categories = [
     { id: 'Interior', name: 'Interior Paints', icon: <Paintbrush className="w-4 h-4" /> },
     { id: 'Exterior', name: 'Exterior Paints', icon: <Paintbrush className="w-4 h-4" /> },
   ];
 
-  // Fetch bases from Supabase
+  // Fetch bases and product prices from Supabase
   useEffect(() => {
     async function fetchBases() {
       const { data: baseData, error: baseError } = await supabase
@@ -39,7 +37,7 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
       }
       setBases(baseData || []);
 
-      // If editing or viewing, fetch product_prices with stock levels
+      // If editing or viewing, fetch product_prices with stock levels and min/max
       if (product) {
         const { data: priceData, error: priceError } = await supabase
           .from('product_prices')
@@ -47,6 +45,8 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
             base_id, 
             unit_price, 
             stock_level,
+            min_stock_level,
+            max_stock_level,
             bases(name)
           `)
           .eq('product_id', product.id);
@@ -62,12 +62,7 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'min_stock_level' || name === 'max_stock_level' 
-        ? parseInt(value) || 0 
-        : value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleBasePriceChange = (base_id, field, value) => {
@@ -82,7 +77,9 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
       return [...prev, { 
         base_id, 
         unit_price: field === 'unit_price' ? parseFloat(value) || 0 : 0,
-        stock_level: field === 'stock_level' ? parseInt(value) || 0 : 0
+        stock_level: field === 'stock_level' ? parseInt(value) || 0 : 0,
+        min_stock_level: field === 'min_stock_level' ? parseInt(value) || 0 : 0,
+        max_stock_level: field === 'max_stock_level' ? parseInt(value) || 0 : 0
       }];
     });
   };
@@ -91,17 +88,25 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
     if (selectedBase && !basePrices.find(b => b.base_id === selectedBase)) {
       const priceInput = document.getElementById('newBasePrice');
       const stockInput = document.getElementById('newBaseStock');
+      const minStockInput = document.getElementById('newBaseMinStock');
+      const maxStockInput = document.getElementById('newBaseMaxStock');
       const price = parseFloat(priceInput.value) || 0;
       const stock = parseInt(stockInput.value) || 0;
+      const minStock = parseInt(minStockInput.value) || 0;
+      const maxStock = parseInt(maxStockInput.value) || 0;
       
       setBasePrices(prev => [...prev, { 
         base_id: selectedBase, 
         unit_price: price,
-        stock_level: stock
+        stock_level: stock,
+        min_stock_level: minStock,
+        max_stock_level: maxStock
       }]);
       setSelectedBase('');
       priceInput.value = '';
       stockInput.value = '';
+      minStockInput.value = '';
+      maxStockInput.value = '';
     }
   };
 
@@ -118,11 +123,16 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
     return basePrices.reduce((total, base) => total + (base.stock_level || 0), 0);
   };
 
-  const getStockStatus = (stockLevel) => {
-    const minStock = parseInt(formData.min_stock_level);
-    if (stockLevel <= minStock) return { status: 'low', color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/20' };
-    if (stockLevel <= minStock * 2) return { status: 'medium', color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-900/20' };
+  const getStockStatus = (stockLevel, minStockLevel) => {
+    if (stockLevel <= minStockLevel) return { status: 'low', color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/20' };
+    if (stockLevel <= minStockLevel * 2) return { status: 'medium', color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-900/20' };
     return { status: 'good', color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/20' };
+  };
+
+  const getTotalStockStatus = () => {
+    const totalStock = getTotalStock();
+    const totalMinStock = basePrices.reduce((total, base) => total + (base.min_stock_level || 0), 0);
+    return getStockStatus(totalStock, totalMinStock);
   };
 
   const handleSubmit = async (e) => {
@@ -158,7 +168,7 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
 
       if (resp.error) throw resp.error;
 
-      // Handle product_prices with stock levels
+      // Handle product_prices with stock levels and min/max
       if (basePrices.length > 0) {
         // First, delete existing prices for this product
         if (product) {
@@ -168,14 +178,16 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
             .eq('product_id', prodId);
         }
 
-        // Then insert new prices with stock levels
+        // Then insert new prices with stock levels and min/max
         const priceInserts = basePrices
           .filter(price => price.unit_price > 0)
           .map(price => ({
             product_id: prodId,
             base_id: price.base_id,
             unit_price: price.unit_price,
-            stock_level: price.stock_level || 0
+            stock_level: price.stock_level || 0,
+            min_stock_level: price.min_stock_level || 0,
+            max_stock_level: price.max_stock_level || 0
           }));
 
         if (priceInserts.length > 0) {
@@ -225,7 +237,7 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
     }));
   };
 
-  const stockStatus = getStockStatus(getTotalStock());
+  const stockStatus = getTotalStockStatus();
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 max-w-4xl w-full max-h-[90vh] overflow-hidden">
@@ -255,14 +267,14 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
 
       <div className="p-8 overflow-y-auto max-h-[calc(90vh-120px)]">
         {error && (
-          <div className="mb-6 flex items-center gap-3 text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-xl px-4 py-3 border border-red-200 dark:border-red-700">
+          <div className="mb-6 flex items-center gap-3 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-xl px-4 py-3 border border-red-200 dark:border-red-700">
             <AlertTriangle className="w-5 h-5 flex-shrink-0" />
             <span className="text-sm font-medium">{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6 border border-gray-200 dark:border-gray-600">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 border border-gray-200 dark:border-gray-600">
             <div className="flex items-center gap-3 mb-6">
               <Tag className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Basic Information</h3>
@@ -369,9 +381,9 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
                   Add different prices and stock levels for each base color
                 </span>
               </div>
-              
+
               {/* Add New Base Price */}
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
                 <div>
                   <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                     <Tag className="w-4 h-4" />
@@ -413,28 +425,68 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
                     Stock Level
                   </label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 font-medium">Qty</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-md">
+                      Qty
+                    </span>
                     <input
                       type="number"
                       min="0"
                       step="1"
-                      className="w-full pl-8 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+                      className="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
                       placeholder="0"
                       id="newBaseStock"
                     />
                   </div>
                 </div>
-                <div className="flex items-end">
-                  <button
-                    type="button"
-                    onClick={addBasePrice}
-                    disabled={!selectedBase}
-                    className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg transition-all duration-200 w-full justify-center"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Base
-                  </button>
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    Min Stock
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-md">
+                      Qty
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      className="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+                      placeholder="0"
+                      id="newBaseMinStock"
+                    />
+                  </div>
                 </div>
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    <TrendingUp className="w-4 h-4" />
+                    Max Stock
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-md">
+                      Qty
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      className="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+                      placeholder="0"
+                      id="newBaseMaxStock"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={addBasePrice}
+                  disabled={!selectedBase}
+                  className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg transition-all duration-200"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Base
+                </button>
               </div>
             </div>
           )}
@@ -452,6 +504,7 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
               <div className="space-y-3">
                 {basePrices.map((price) => {
                   const base = bases.find(b => b.id === price.base_id);
+                  const status = getStockStatus(price.stock_level, price.min_stock_level);
                   return (
                     <div
                       key={price.base_id}
@@ -500,22 +553,53 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
                               min="0"
                               step="1"
                               disabled={viewMode}
-                              className="w-32 pl-8 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="w-32 pl-12 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             />
                           </div>
                           <div className="flex items-center justify-between mt-1">
                             <p className="text-xs text-gray-500 dark:text-gray-400">
                               Stock
                             </p>
-                            {(() => {
-                              const status = getStockStatus(price.stock_level);
-                              return (
-                                <div className={`px-2 py-1 rounded-full text-xs font-medium ${status.bg} ${status.color}`}>
-                                  {status.status}
-                                </div>
-                              );
-                            })()}
+                            <div className={`px-2 py-1 rounded-full text-xs font-medium ${status.bg} ${status.color}`}>
+                              {status.status}
+                            </div>
                           </div>
+                        </div>
+
+                        <div className="text-right">
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 font-medium">Qty</span>
+                            <input
+                              type="number"
+                              value={price.min_stock_level}
+                              onChange={(e) => handleBasePriceChange(price.base_id, 'min_stock_level', e.target.value)}
+                              min="0"
+                              step="1"
+                              disabled={viewMode}
+                              className="w-32 pl-12 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            />
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Min Stock
+                          </p>
+                        </div>
+
+                        <div className="text-right">
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 font-medium">Qty</span>
+                            <input
+                              type="number"
+                              value={price.max_stock_level}
+                              onChange={(e) => handleBasePriceChange(price.base_id, 'max_stock_level', e.target.value)}
+                              min="0"
+                              step="1"
+                              disabled={viewMode}
+                              className="w-32 pl-12 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            />
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Max Stock
+                          </p>
                         </div>
                         
                         {!viewMode && (
@@ -551,10 +635,10 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
           <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6 border border-gray-200 dark:border-gray-600">
             <div className="flex items-center gap-3 mb-6">
               <TrendingUp className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Inventory Management</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Inventory Summary</h3>
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-6">
               <div>
                 <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                   <Package className="w-4 h-4" />
@@ -576,166 +660,6 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
                   Sum of all base stock levels
                 </p>
               </div>
-
-              <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                  <AlertTriangle className="w-4 h-4" />
-                  Minimum Stock
-                </label>
-                <input
-                  type="number"
-                  name="min_stock_level"
-                  value={formData.min_stock_level}
-                  onChange={handleChange}
-                  min="0"
-                  disabled={viewMode}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  placeholder="0"
-                />
-              </div>
-
-              <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                  <TrendingUp className="w-4 h-4" />
-                  Maximum Stock
-                </label>
-                <input
-                  type="number"
-                  name="max_stock_level"
-                  value={formData.max_stock_level}
-                  onChange={handleChange}
-                  min="0"
-                  disabled={viewMode}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  placeholder="0"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Base Prices and Stock Section */}
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6 border border-gray-200 dark:border-gray-600">
-            <div className="flex items-center gap-3 mb-6">
-              <DollarSign className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Base Configuration & Stock Levels</h3>
-            </div>
-            
-            {basePrices.length > 0 ? (
-              <div className="space-y-4">
-                {basePrices.map((basePrice, index) => {
-                  const base = bases.find(b => b.id === basePrice.base_id);
-                  const stockStatus = getStockStatus(basePrice.stock_level);
-                  return (
-                    <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold text-gray-900 dark:text-white">
-                          {base?.name || 'Unknown Base'}
-                        </h4>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${stockStatus.bg} ${stockStatus.color}`}>
-                          {stockStatus.status === 'good' ? 'Good Stock' : 
-                           stockStatus.status === 'medium' ? 'Medium Stock' : 'Low Stock'}
-                        </span>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Unit Price
-                          </label>
-                          <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                            ${basePrice.unit_price?.toFixed(2) || '0.00'}
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Stock Level
-                          </label>
-                          <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                            {basePrice.stock_level || 0} pcs
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Stock Level Bar */}
-                      <div className="mt-3">
-                        <div className="flex items-center justify-between text-sm mb-2">
-                          <span className="text-gray-600 dark:text-gray-400">Stock Level</span>
-                          <span className="text-gray-900 dark:text-white">
-                            {basePrice.stock_level || 0} / {formData.min_stock_level} pcs
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full transition-all duration-500 ${
-                              stockStatus.status === 'low' ? 'bg-red-500' : 
-                              stockStatus.status === 'medium' ? 'bg-yellow-500' : 
-                              'bg-green-500'
-                            }`}
-                            style={{ 
-                              width: `${Math.min(100, ((basePrice.stock_level || 0) / Math.max(formData.min_stock_level, 1)) * 100)}%` 
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                
-                {/* Total Stock Summary */}
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Package className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                      <div>
-                        <h4 className="font-semibold text-blue-900 dark:text-blue-100">Total Stock</h4>
-                        <p className="text-sm text-blue-700 dark:text-blue-300">Combined stock across all bases</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-                        {getTotalStock()} pcs
-                      </div>
-                      <div className="text-sm text-blue-700 dark:text-blue-300">
-                        Min Required: {formData.min_stock_level} pcs
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <DollarSign className="w-8 h-8 text-gray-400" />
-                </div>
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">No Bases Configured</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  This product doesn't have any base prices or stock levels configured yet.
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6 border border-gray-200 dark:border-gray-600">
-            <div className="flex items-center gap-3 mb-6">
-              <FileText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Additional Information</h3>
-            </div>
-            
-            <div>
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                <FileText className="w-4 h-4" />
-                Description
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows="4"
-                disabled={viewMode}
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                placeholder="Describe the product features, applications, specifications..."
-              />
             </div>
           </div>
 
@@ -805,7 +729,7 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
                     <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-red-700 dark:text-red-400">Confirm Delete</h3>
+                    <h3 className="text-xl font-bold text-red-600 dark:text-red-400">Confirm Delete</h3>
                     <p className="text-gray-600 dark:text-gray-400 mt-1">This action cannot be undone</p>
                   </div>
                 </div>
