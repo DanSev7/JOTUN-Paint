@@ -89,6 +89,17 @@ const Dashboard = () => {
     }
   ];
 
+  // Stock status logic (aligned with Products.jsx)
+  const getStockStatus = (stockLevel, minStockLevel) => {
+    if ((stockLevel || 0) === 0) {
+      return { status: 'out_of_stock', label: 'Out of Stock', color: 'text-red-700 dark:text-red-300', bg: 'bg-red-50 dark:bg-red-900/20', border: 'border-red-200 dark:border-red-700' };
+    }
+    if (stockLevel <= minStockLevel) {
+      return { status: 'low_stock', label: 'Low Stock', color: 'text-amber-700 dark:text-amber-300', bg: 'bg-amber-50 dark:bg-amber-900/20', border: 'border-amber-200 dark:border-amber-700' };
+    }
+    return { status: 'in_stock', label: 'In Stock', color: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-200 dark:border-emerald-700' };
+  };
+
   // Fetch data on component mount
   useEffect(() => {
     if (!setKpiData || !setLowStockItems || !setRecentTransactions || !setFrequentProducts) {
@@ -117,21 +128,22 @@ const Dashboard = () => {
       setKpiData,
       setLowStockItems,
       setRecentTransactions,
-      setFrequentProducts
+      setFrequentProducts,
+      getStockStatus
     );
   }, []);
 
   // Recalculate KPIs when sales filter changes
   useEffect(() => {
     if (products.length > 0 && transactions.length > 0) {
-      calculateKPIs(products, transactions, salesFilter, getStartDate, getSalesTitle, setKpiData);
+      calculateKPIs(products, transactions, salesFilter, getStartDate, getSalesTitle, setKpiData, getStockStatus);
     }
   }, [salesFilter, products, transactions]);
 
   // Recalculate low stock items when products change
   useEffect(() => {
     if (products.length > 0) {
-      calculateLowStockItems(products, setLowStockItems);
+      calculateLowStockItems(products, setLowStockItems, getStockStatus);
     }
   }, [products]);
 
@@ -148,6 +160,11 @@ const Dashboard = () => {
       calculateFrequentProducts(transactions, productsFilter, topProductsFilter, getStartDate, setFrequentProducts);
     }
   }, [productsFilter, topProductsFilter, transactions]);
+
+  // Log lowStockItems for debugging
+  useEffect(() => {
+    console.log('Current lowStockItems state:', lowStockItems);
+  }, [lowStockItems]);
 
   // Loading state
   if (loading) {
@@ -192,7 +209,8 @@ const Dashboard = () => {
               setKpiData,
               setLowStockItems,
               setRecentTransactions,
-              setFrequentProducts
+              setFrequentProducts,
+              getStockStatus
             )}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
@@ -342,8 +360,8 @@ const Dashboard = () => {
               <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-red-700 dark:text-red-300">Low Stock Alert</h3>
-              <p className="text-sm text-red-600 dark:text-red-400">Items requiring immediate attention</p>
+              <h3 className="text-xl font-bold text-red-700 dark:text-red-300">Low Stock Alert (Bases)</h3>
+              <p className="text-sm text-red-600 dark:text-red-400">Base items requiring immediate attention</p>
             </div>
           </div>
 
@@ -351,13 +369,13 @@ const Dashboard = () => {
             {lowStockItems.length > 0 ? (
               lowStockItems.map((item) => {
                 const urgencyStyle = getUrgencyStyle(item.urgency);
-                const stockPercentage = (item.currentStock / item.minStock) * 100;
+                const stockPercentage = item.minStock > 0 ? (item.currentStock / item.minStock) * 100 : 0;
                 
                 return (
-                  <div key={item.id} className={`p-4 rounded-xl ${urgencyStyle.bg} ${urgencyStyle.border} border shadow-sm hover:shadow-md transition-all duration-200 group`}>
+                  <div key={`${item.productId}-${item.baseId}`} className={`p-4 rounded-xl ${urgencyStyle.bg} ${urgencyStyle.border} border shadow-sm hover:shadow-md transition-all duration-200 group`}>
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
-                        <h4 className="font-semibold text-slate-900 dark:text-white mb-1">{item.name}</h4>
+                        <h4 className="font-semibold text-slate-900 dark:text-white mb-1">{item.name} ({item.baseName})</h4>
                         <div className="flex items-center gap-2 mb-2">
                           <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium rounded-full">
                             {item.baseName}
@@ -414,7 +432,10 @@ const Dashboard = () => {
                   <Package className="w-8 h-8 text-green-600 dark:text-green-400" />
                 </div>
                 <h4 className="font-semibold text-slate-900 dark:text-white mb-2">All Stock Levels Good</h4>
-                <p className="text-sm text-slate-600 dark:text-slate-400">No low stock items to display</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">No low stock bases to display</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                  Debug: Check console for products and lowStockItems data
+                </p>
               </div>
             )}
           </div>

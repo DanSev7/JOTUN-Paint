@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import supabase from '../services/supabase';
 import { useToast } from '../contexts/ToastContext';
+import StockInAnalysisReport from '../components/reports/StockInAnalysisReport';
 
 const Reports = () => {
   const [selectedReport, setSelectedReport] = useState('stock_status');
@@ -80,6 +81,12 @@ const Reports = () => {
       name: 'Sales Analysis', 
       icon: <LineChart className="w-5 h-5" />, 
       description: 'Custom date range sales analysis' 
+    },
+    {
+      id: 'stock-in',
+      name : 'Stock-In Analysis',
+      icon: <LineChart className='w-5 h-5' />,
+      description: 'Custom date range stock-in analysis'
     }
   ];
 
@@ -147,7 +154,7 @@ const Reports = () => {
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">
               Report Type
             </label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {reports.map(report => (
                 <button
                   key={report.id}
@@ -181,6 +188,7 @@ const Reports = () => {
       {/* Report Content */}
       {selectedReport === 'stock_status' && <StockStatusReport products={products} transactions={transactions} />}
       {selectedReport === 'analysis' && <SalesAnalysisReport transactions={transactions} />}
+      {selectedReport === 'stock-in' && <StockInAnalysisReport transactions={transactions} />}
     </div>
   );
 };

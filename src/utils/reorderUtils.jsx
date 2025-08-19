@@ -19,12 +19,17 @@ export const handleReorder = (item, products, setReorderItem, setShowReorderModa
 };
 
 // Handler to submit reorder
-export const handleReorderSubmit = async (formData, reorderItem, supabase, showSuccess, fetchDashboardData, setShowReorderModal, setReorderItem) => {
-  if (!reorderItem) return;
+export const handleReorderSubmit = async (formData, reorderItem, supabase, showSuccess, showError, fetchDashboardData, setShowReorderModal, setReorderItem) => {
+  if (!reorderItem) {
+    console.error('No reorder item provided');
+    showError('No item selected for reorder', 3000);
+    return;
+  }
   
   try {
+    console.log('Submitting reorder with formData:', formData, 'reorderItem:', reorderItem);
     // Create a stock_in transaction for the reorder
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('transactions')
       .insert([{
         type: 'stock_in',
@@ -37,12 +42,18 @@ export const handleReorderSubmit = async (formData, reorderItem, supabase, showS
         status: formData.status,
         transaction_date: new Date(formData.transaction_date).toISOString(),
         reference: formData.reference
-      }]);
+      }])
+      .select();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase insert error:', error);
+      throw error;
+    }
 
-    // Show success message
-    showSuccess('Reorder submitted successfully!', 'success');
+    console.log('Supabase insert successful, data:', data);
+    // Show success message with 3-second duration
+    console.log('Triggering success toast with type: success');
+    showSuccess('Reorder submitted successfully!', 3000);
     
     // Refresh data
     await fetchDashboardData();
@@ -51,7 +62,8 @@ export const handleReorderSubmit = async (formData, reorderItem, supabase, showS
     setShowReorderModal(false);
     setReorderItem(null);
   } catch (err) {
-    showError('Failed to submit reorder: ' + err.message);
+    console.error('Reorder submission error:', err);
+    showError(`Failed to submit reorder: ${err.message}`, 3000);
   }
 };
 
@@ -99,9 +111,17 @@ export const ReorderModal = ({ show, item, onClose, onSubmit }) => {
               reference: document.getElementById('reorderReference').value
             };
             
-            if (formData.quantity > 0 && formData.unit_price > 0) {
-              onSubmit(formData);
+            console.log('Form validation - quantity:', quantity, 'unitPrice:', unitPrice);
+            if (formData.quantity <= 0 || formData.unit_price <= 0) {
+              console.log('Form validation failed, triggering error toast');
+              document.dispatchEvent(new CustomEvent('showToast', {
+                detail: { message: 'Quantity and unit price must be greater than 0', type: 'error', duration: 3000 }
+              }));
+              return;
             }
+            
+            console.log('Form validated, submitting:', formData);
+            onSubmit(formData);
           }} className="space-y-6">
             
             {/* Date and Reference */}

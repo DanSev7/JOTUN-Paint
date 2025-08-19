@@ -3,8 +3,6 @@ import ProductForm from '../components/products/ProductForm';
 import { 
   Plus, 
   Search, 
-  Filter, 
-  Download, 
   Package, 
   Edit3, 
   Eye, 
@@ -33,13 +31,29 @@ const Products = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Stock status logic from ProductForm.jsx
+  const getStockStatus = (stockLevel, minStockLevel) => {
+    if ((stockLevel || 0) === 0) {
+      return { status: 'out_of_stock', label: 'Out of Stock', color: 'text-red-700 dark:text-red-300', bg: 'bg-red-50 dark:bg-red-900/20', border: 'border-red-200 dark:border-red-700' };
+    }
+    if (stockLevel <= minStockLevel) {
+      return { status: 'low_stock', label: 'Low Stock', color: 'text-amber-700 dark:text-amber-300', bg: 'bg-amber-50 dark:bg-amber-900/20', border: 'border-amber-200 dark:border-amber-700' };
+    }
+    // Merge 'medium' and 'good' into 'in_stock'
+    return { status: 'in_stock', label: 'In Stock', color: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-200 dark:border-emerald-700' };
+  };
+
+  const getTotalStockStatus = (totalStock, totalMinStock) => {
+    return getStockStatus(totalStock, totalMinStock);
+  };
+
   // Fetch all necessary data
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     
     try {
-      // Fetch products with their base prices and stock levels
+      // Fetch products with their base prices, stock levels, and min/max stock levels
       const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select(`
@@ -47,6 +61,8 @@ const Products = () => {
           product_prices:product_prices(
             unit_price,
             stock_level,
+            min_stock_level,
+            max_stock_level,
             base_id,
             bases:base_id(name)
           )
@@ -56,32 +72,25 @@ const Products = () => {
 
       // Process products to include base-specific price and stock info
       const processedProducts = (productsData || []).map(product => {
-        // Calculate total stock from all bases
+        // Calculate total stock and total min stock from all bases
         const totalStock = (product.product_prices || []).reduce((sum, price) => sum + (price.stock_level || 0), 0);
+        const totalMinStock = (product.product_prices || []).reduce((sum, price) => sum + (price.min_stock_level || 0), 0);
         
-        // Determine overall product status based on total stock
-        let status = 'in_stock';
-        if (totalStock <= 0) {
-          status = 'out_of_stock';
-        } else if (totalStock <= product.min_stock_level) {
-          status = 'low_stock';
-        }
+        // Determine overall product status using getTotalStockStatus
+        const { status } = getTotalStockStatus(totalStock, totalMinStock);
 
         // Process base-specific information with status
         const basePrices = (product.product_prices || []).map(price => {
-          let baseStatus = 'in_stock';
-          if (price.stock_level <= 0) {
-            baseStatus = 'out_of_stock';
-          } else if (price.stock_level <= product.min_stock_level) {
-            baseStatus = 'low_stock';
-          }
-
+          const baseStatus = getStockStatus(price.stock_level, price.min_stock_level);
           return {
             baseId: price.base_id,
             baseName: price.bases?.name || 'Unknown',
             unitPrice: price.unit_price || 0,
             stockLevel: price.stock_level || 0,
-            status: baseStatus
+            minStockLevel: price.min_stock_level || 0,
+            maxStockLevel: price.max_stock_level || 0,
+            status: baseStatus.status,
+            statusLabel: baseStatus.label
           };
         });
 
@@ -89,6 +98,7 @@ const Products = () => {
           ...product,
           status,
           totalStock,
+          totalMinStock,
           basePrices,
           unit_price: basePrices[0]?.unitPrice || 0,
           base_name: basePrices[0]?.baseName || ''
@@ -192,7 +202,7 @@ const Products = () => {
     return Math.min(percentage, 100);
   };
 
-  // Calculate stats for cards
+  // Calculate stats for cards (Low Stock and Out of Stock by base)
   const getStats = () => {
     const totalProducts = products.length;
     const inStockCount = products.filter(p => p.status === 'in_stock').length;
@@ -246,7 +256,7 @@ const Products = () => {
           </div>
         </div>
         
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-emerald-200 dark:border-emerald-700 p-6">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl">
               <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
@@ -258,7 +268,7 @@ const Products = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-amber-200 dark:border-amber-700 p-6">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-xl">
               <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
@@ -270,7 +280,7 @@ const Products = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-red-200 dark:border-red-700 p-6">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-xl">
               <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
@@ -372,7 +382,7 @@ const Products = () => {
       }`}>
         {filteredProducts.map(product => {
           const statusStyle = getStatusStyle(product.status);
-          const stockLevel = getStockLevel(product.totalStock, product.min_stock_level);
+          const stockLevel = getStockLevel(product.totalStock, product.totalMinStock);
           
           if (viewMode === 'list') {
             return (
@@ -478,7 +488,7 @@ const Products = () => {
                 <div className="flex items-center justify-between text-sm mb-2">
                   <span className="text-slate-600 dark:text-slate-400">Total Stock Level</span>
                   <span className="font-medium text-slate-900 dark:text-white">
-                    {product.totalStock} / {product.min_stock_level} pcs
+                    {product.totalStock} / {product.totalMinStock} pcs
                   </span>
                 </div>
                 <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
@@ -536,7 +546,7 @@ const Products = () => {
                               ${base.unitPrice.toFixed(2)}
                             </span>
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${baseStatusStyle.bg} ${baseStatusStyle.text}`}>
-                              {base.stockLevel} pcs ({getStatusText(base.status)})
+                              {base.stockLevel} pcs ({base.statusLabel})
                             </span>
                           </div>
                         </div>

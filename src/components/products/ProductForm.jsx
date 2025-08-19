@@ -124,9 +124,16 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
   };
 
   const getStockStatus = (stockLevel, minStockLevel) => {
-    if (stockLevel <= minStockLevel) return { status: 'low', color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/20' };
-    if (stockLevel <= minStockLevel * 2) return { status: 'medium', color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-900/20' };
-    return { status: 'good', color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/20' };
+    if ((stockLevel || 0) === 0) {
+      return { status: 'out', label: 'Out of Stock', color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/20' };
+    }
+    if (stockLevel <= minStockLevel) {
+      return { status: 'low', label: 'Low Stock', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/20' };
+    }
+    if (stockLevel <= minStockLevel * 2) {
+      return { status: 'medium', label: 'Medium', color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-900/20' };
+    }
+    return { status: 'good', label: 'In Stock', color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/20' };
   };
 
   const getTotalStockStatus = () => {
@@ -240,7 +247,7 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
   const stockStatus = getTotalStockStatus();
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 max-w-4xl w-full max-h-[90vh] overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 max-w-5xl w-full max-h-[90vh] overflow-hidden">
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-800 px-8 py-6 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -266,6 +273,43 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
       </div>
 
       <div className="p-8 overflow-y-auto max-h-[calc(90vh-120px)]">
+        {viewMode && (
+          <div className="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="col-span-1 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 overflow-hidden shadow-sm">
+              {formData.image_url ? (
+                <img src={formData.image_url} alt={formData.name} className="w-full h-56 object-cover" />
+              ) : (
+                <div className="w-full h-56 bg-gray-100 dark:bg-gray-600 flex items-center justify-center text-gray-400">No Image</div>
+              )}
+            </div>
+            <div className="col-span-1 lg:col-span-2 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 p-6 shadow-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Product</p>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{formData.name}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Category</p>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{formData.category || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Size</p>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{formData.size}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Total Stock</p>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{getTotalStock()} pcs</p>
+                </div>
+              </div>
+              {product?.description && (
+                <div className="mt-4">
+                  <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Description</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{product.description}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         {error && (
           <div className="mb-6 flex items-center gap-3 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-xl px-4 py-3 border border-red-200 dark:border-red-700">
             <AlertTriangle className="w-5 h-5 flex-shrink-0" />
@@ -561,7 +605,7 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
                               Stock
                             </p>
                             <div className={`px-2 py-1 rounded-full text-xs font-medium ${status.bg} ${status.color}`}>
-                              {status.status}
+                              {status.label}
                             </div>
                           </div>
                         </div>

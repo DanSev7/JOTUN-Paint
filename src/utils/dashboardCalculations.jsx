@@ -1,6 +1,6 @@
 import { Package, DollarSign, Paintbrush, AlertTriangle } from 'lucide-react';
 
-export const calculateKPIs = (processedProducts, transactionsData, salesFilter, getStartDate, getSalesTitle, setKpiData) => {
+export const calculateKPIs = (processedProducts, transactionsData, salesFilter, getStartDate, getSalesTitle, setKpiData, getStockStatus) => {
   // Total Paint Stock - sum all base stock levels
   const totalStock = processedProducts.reduce((sum, product) => sum + (product.totalStock || 0), 0);
   
@@ -22,9 +22,10 @@ export const calculateKPIs = (processedProducts, transactionsData, salesFilter, 
   
   // Low Stock Items count - count per base low stock instances
   const lowStockCount = processedProducts.reduce((count, p) => {
-    return count + (p.basePrices || []).filter(b => 
-      b.stockLevel <= p.min_stock_level && b.stockLevel > 0
-    ).length;
+    return count + (p.basePrices || []).filter(b => {
+      const { status } = getStockStatus(b.stockLevel, b.minStockLevel || p.min_stock_level);
+      return status === 'low_stock';
+    }).length;
   }, 0);
 
   // Mock percentage changes
@@ -79,17 +80,25 @@ export const calculateKPIs = (processedProducts, transactionsData, salesFilter, 
   setKpiData(kpis);
 };
 
-export const calculateLowStockItems = (processedProducts, setLowStockItems) => {
+export const calculateLowStockItems = (processedProducts, setLowStockItems, getStockStatus) => {
+  console.log('calculateLowStockItems: Input processedProducts', processedProducts);
+
   const lowStockItemsList = [];
   
   processedProducts.forEach(product => {
     if (product.basePrices && product.basePrices.length > 0) {
       product.basePrices.forEach(base => {
-        if (base.stockLevel <= product.min_stock_level && base.stockLevel > 0) {
-          const stockPercentage = (base.stockLevel / product.min_stock_level) * 100;
-          let urgency = 'low';
-          if (stockPercentage <= 25) urgency = 'critical';
-          else if (stockPercentage <= 50) urgency = 'warning';
+        if (!base.stockLevel || !base.minStockLevel) {
+          console.log(`Skipping base ${base.baseId} for product ${product.name}: Missing stockLevel or minStockLevel`, base);
+          return;
+        }
+
+        const { status } = getStockStatus(base.stockLevel, base.minStockLevel || product.min_stock_level);
+        console.log(`Base ${base.baseName} (ID: ${base.baseId}) - Stock: ${base.stockLevel}, Min: ${base.minStockLevel || product.min_stock_level}, Status: ${status}`);
+
+        if (status === 'low_stock') {
+          const stockPercentage = base.minStockLevel > 0 ? (base.stockLevel / base.minStockLevel) * 100 : 0;
+          const urgency = stockPercentage <= 25 ? 'critical' : stockPercentage <= 50 ? 'warning' : 'low';
 
           lowStockItemsList.push({
             id: `${product.id}-${base.baseId}`,
@@ -97,15 +106,17 @@ export const calculateLowStockItems = (processedProducts, setLowStockItems) => {
             baseName: base.baseName,
             baseId: base.baseId,
             currentStock: base.stockLevel,
-            minStock: product.min_stock_level,
-            unit: 'pcs',
-            supplier: 'Jotun Ethiopia',
+            minStock: base.minStockLevel || product.min_stock_level,
+            unit: product.unit || 'pcs',
+            supplier: product.supplier || 'Jotun Ethiopia',
             category: product.category || 'Uncategorized',
             urgency,
             productId: product.id
           });
         }
       });
+    } else {
+      console.log(`No basePrices for product ${product.name}`);
     }
   });
 
@@ -117,6 +128,7 @@ export const calculateLowStockItems = (processedProducts, setLowStockItems) => {
     })
     .slice(0, 10);
 
+  console.log('Calculated lowStockItems:', sortedLowStock);
   setLowStockItems(sortedLowStock);
 };
 

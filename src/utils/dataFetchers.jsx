@@ -20,14 +20,15 @@ export const fetchDashboardData = async (
   setKpiData,
   setLowStockItems,
   setRecentTransactions,
-  setFrequentProducts
+  setFrequentProducts,
+  getStockStatus
 ) => {
   setLoading(true);
   setError(null);
   
   try {
     // Validate required functions
-    if (!setKpiData || !setLowStockItems || !setRecentTransactions || !setFrequentProducts || !getStartDate) {
+    if (!setKpiData || !setLowStockItems || !setRecentTransactions || !setFrequentProducts || !getStartDate || !getStockStatus) {
       throw new Error('One or more required functions are undefined');
     }
 
@@ -39,12 +40,16 @@ export const fetchDashboardData = async (
         product_prices:product_prices(
           unit_price,
           stock_level,
+          min_stock_level,
+          max_stock_level,
           base_id,
           bases:base_id(name)
         )
       `);
     
     if (productsError) throw productsError;
+
+    console.log('Fetched products:', productsData);
 
     // Process products to include base-specific stock info
     const processedProducts = (productsData || []).map(product => {
@@ -56,7 +61,8 @@ export const fetchDashboardData = async (
         baseId: price.base_id,
         baseName: price.bases?.name || 'Unknown',
         unitPrice: price.unit_price || 0,
-        stockLevel: price.stock_level || 0
+        stockLevel: price.stock_level || 0,
+        minStockLevel: price.min_stock_level || product.min_stock_level || 0
       }));
 
       return {
@@ -79,12 +85,22 @@ export const fetchDashboardData = async (
 
     if (transactionsError) throw transactionsError;
 
+    console.log('Fetched transactions:', transactionsData);
+
     setProducts(processedProducts || []);
     setTransactions(transactionsData || []);
 
     // Calculate KPIs and other data
-    calculateKPIs(processedProducts || [], transactionsData || [], salesFilter, getStartDate, getSalesTitle, setKpiData);
-    calculateLowStockItems(processedProducts || [], setLowStockItems);
+    calculateKPIs(
+      processedProducts || [], 
+      transactionsData || [], 
+      salesFilter, 
+      getStartDate, 
+      getSalesTitle, 
+      setKpiData,
+      getStockStatus
+    );
+    calculateLowStockItems(processedProducts || [], setLowStockItems, getStockStatus);
     calculateRecentTransactions(transactionsData || [], transactionFilter, getStartDate, formatTimeAgo, setRecentTransactions);
     calculateFrequentProducts(transactionsData || [], productsFilter, topProductsFilter, getStartDate, setFrequentProducts);
 
