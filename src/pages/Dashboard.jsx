@@ -61,13 +61,6 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   const quickActions = [
-    // {
-    //   label: 'Add Stock',
-    //   icon: <Plus className="w-5 h-5" />,
-    //   gradient: 'from-blue-500 to-indigo-600',
-    //   hoverGradient: 'hover:from-blue-600 hover:to-indigo-700',
-    //   action: () => navigate('/transactions?type=stock_in')
-    // },
     {
       label: 'New Sale',
       icon: <ShoppingCart className="w-5 h-5" />,
@@ -131,7 +124,7 @@ const Dashboard = () => {
       setFrequentProducts,
       getStockStatus
     );
-  }, [transactionFilter, productsFilter, topProductsFilter]); // Removed salesFilter
+  }, []); // Removed transactionFilter, productsFilter, topProductsFilter dependencies
 
   useEffect(() => {
     fetchDashboardDataCallback();
@@ -233,7 +226,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-4 md:p-6 space-y-6 md:space-y-8">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
+          <h1 className="text-2xl md:text-3xl lg:text-4xl mt-5 font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
             Paint Management Dashboard
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-2 text-base md:text-lg">
@@ -449,8 +442,8 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 md:p-8">
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 sm:p-6 md:p-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
             <div>
               <h3 className="text-xl font-bold text-slate-900 dark:text-white">Recent Transactions</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">Latest inventory movements</p>
@@ -458,7 +451,7 @@ const Dashboard = () => {
             <select 
               value={transactionFilter}
               onChange={(e) => setTransactionFilter(e.target.value)}
-              className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm"
+              className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm mt-2 sm:mt-0"
             >
               <option value="today">Today</option>
               <option value="yesterday">Yesterday</option>
@@ -475,30 +468,26 @@ const Dashboard = () => {
               recentTransactions.map((transaction) => {
                 const style = getTransactionStyle(transaction.type);
                 return (
-                  <div key={transaction.id} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200 group">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-2 rounded-lg ${style.iconBg} ${style.iconColor} group-hover:scale-110 transition-transform duration-200`}>
+                  <div key={transaction.id} className="p-3 sm:p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200 group">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                      <div className={`p-2 rounded-lg ${style.iconBg} ${style.iconColor} group-hover:scale-110 transition-transform duration-200 w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center`}>
                         {style.icon}
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-1">
-                          <p className="font-semibold text-slate-900 dark:text-white">
+                          <p className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">
                             {transaction.product}
                           </p>
-                          <span className="font-bold text-slate-900 dark:text-white">
+                          <span className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">
                             {transaction.amount}
                           </span>
                         </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-slate-600 dark:text-slate-400">
-                            {transaction.quantity} • {transaction.user}
-                          </span>
-                          <span className="text-slate-500 dark:text-slate-400">
-                            {transaction.timestamp}
-                          </span>
+                        <div className="flex items-center justify-between text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+                          <span>{transaction.quantity} • {transaction.user}</span>
+                          <span>{transaction.timestamp}</span>
                         </div>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${style.badge} uppercase`}>
+                      <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-bold ${style.badge} uppercase`}>
                         {transaction.type === 'sale' ? 'Sale' : 'Stock In'}
                       </span>
                     </div>
@@ -517,13 +506,13 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 md:p-8">
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 sm:p-6 md:p-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
             <div>
               <h3 className="text-xl font-bold text-slate-900 dark:text-white">Top Selling Products</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">Most popular items by {topProductsFilter === 'revenue' ? 'revenue' : 'quantity'}</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 mt-2 sm:mt-0">
               <select 
                 value={topProductsFilter}
                 onChange={(e) => setTopProductsFilter(e.target.value)}
@@ -551,33 +540,33 @@ const Dashboard = () => {
           <div className="space-y-4 max-h-80 overflow-y-auto">
             {frequentProducts.length > 0 ? (
               frequentProducts.map((product, index) => (
-                <div key={product.id} className="p-4 rounded-xl bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-900/10 dark:to-slate-800 border border-emerald-100 dark:border-emerald-800 hover:shadow-md transition-all duration-200 group">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-full text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                <div key={product.id} className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-900/10 dark:to-slate-800 border border-emerald-100 dark:border-emerald-800 hover:shadow-md transition-all duration-200 group">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-full text-emerald-600 dark:text-emerald-400 font-bold text-xs sm:text-sm">
                         #{index + 1}
                       </div>
-                      <BarChart3 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform duration-200" />
+                      <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform duration-200" />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <p className="font-semibold text-slate-900 dark:text-white">
+                        <p className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">
                           {product.name}
                         </p>
                         <div className="flex items-center gap-1">
                           {product.trend === 'up' ? (
-                            <TrendingUp className="w-4 h-4 text-green-500" />
+                            <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
                           ) : (
-                            <TrendingDown className="w-4 h-4 text-red-500" />
+                            <TrendingDown className="w-3 h-3 sm:w-4 sm:h-4 text-red-500" />
                           )}
-                          <span className="font-bold text-slate-900 dark:text-white text-sm">
+                          <span className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">
                             {product.revenue}
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-400">
+                      <div className="flex items-center justify-between text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                         <span>{product.baseName} • {product.soldQuantity}{product.unit} sold</span>
-                        <span className={`px-2 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300`}>
+                        <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300`}>
                           Top Seller
                         </span>
                       </div>

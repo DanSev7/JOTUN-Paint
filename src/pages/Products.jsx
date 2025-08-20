@@ -221,7 +221,7 @@ const Products = () => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
+          <h1 className="text-2xl md:text-3xl lg:text-4xl mt-5 font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
             Paint Products
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-2 text-base md:text-lg">
