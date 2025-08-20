@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import KPICard from '../components/dashbaord/KPICard';
 import StockChart from '../components/dashbaord/StockChart';
@@ -42,6 +42,8 @@ const Dashboard = () => {
   const [topProductsFilter, setTopProductsFilter] = useState('revenue');
   const [reorderItem, setReorderItem] = useState(null);
   const [showReorderModal, setShowReorderModal] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Data states
   const [products, setProducts] = useState([]);
@@ -55,7 +57,7 @@ const Dashboard = () => {
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [frequentProducts, setFrequentProducts] = useState([]);
 
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
   const navigate = useNavigate();
 
   const quickActions = [
@@ -89,7 +91,6 @@ const Dashboard = () => {
     }
   ];
 
-  // Stock status logic (aligned with Products.jsx)
   const getStockStatus = (stockLevel, minStockLevel) => {
     if ((stockLevel || 0) === 0) {
       return { status: 'out_of_stock', label: 'Out of Stock', color: 'text-red-700 dark:text-red-300', bg: 'bg-red-50 dark:bg-red-900/20', border: 'border-red-200 dark:border-red-700' };
@@ -100,8 +101,7 @@ const Dashboard = () => {
     return { status: 'in_stock', label: 'In Stock', color: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-200 dark:border-emerald-700' };
   };
 
-  // Fetch data on component mount
-  useEffect(() => {
+  const fetchDashboardDataCallback = useCallback(() => {
     if (!setKpiData || !setLowStockItems || !setRecentTransactions || !setFrequentProducts) {
       console.error('One or more state setters are undefined in Dashboard.jsx');
       setError('Configuration error: State setters are not available');
@@ -131,42 +131,73 @@ const Dashboard = () => {
       setFrequentProducts,
       getStockStatus
     );
-  }, []);
+  }, [transactionFilter, productsFilter, topProductsFilter]); // Removed salesFilter
 
-  // Recalculate KPIs when sales filter changes
+  useEffect(() => {
+    fetchDashboardDataCallback();
+  }, [fetchDashboardDataCallback, refreshTrigger]);
+
+  useEffect(() => {
+    const subscription = supabase
+      .channel('product_prices_changes')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'product_prices' }, (payload) => {
+        console.log('Product prices updated:', payload);
+        fetchDashboardDataCallback();
+      })
+      .subscribe();
+    return () => supabase.removeChannel(subscription);
+  }, [fetchDashboardDataCallback]);
+
   useEffect(() => {
     if (products.length > 0 && transactions.length > 0) {
       calculateKPIs(products, transactions, salesFilter, getStartDate, getSalesTitle, setKpiData, getStockStatus);
     }
   }, [salesFilter, products, transactions]);
 
-  // Recalculate low stock items when products change
   useEffect(() => {
     if (products.length > 0) {
       calculateLowStockItems(products, setLowStockItems, getStockStatus);
     }
   }, [products]);
 
-  // Recalculate recent transactions when filter changes
   useEffect(() => {
     if (transactions.length > 0) {
       calculateRecentTransactions(transactions, transactionFilter, getStartDate, formatTimeAgo, setRecentTransactions);
     }
   }, [transactionFilter, transactions]);
 
-  // Recalculate frequent products when filter changes
   useEffect(() => {
     if (transactions.length > 0) {
       calculateFrequentProducts(transactions, productsFilter, topProductsFilter, getStartDate, setFrequentProducts);
     }
   }, [productsFilter, topProductsFilter, transactions]);
 
-  // Log lowStockItems for debugging
   useEffect(() => {
     console.log('Current lowStockItems state:', lowStockItems);
   }, [lowStockItems]);
 
-  // Loading state
+  const handleReorderSubmitWithRefresh = async (formData, reorderItem) => {
+    setIsRefreshing(true);
+    try {
+      await handleReorderSubmit(
+        formData,
+        reorderItem,
+        supabase,
+        showSuccess,
+        showError,
+        fetchDashboardDataCallback,
+        setShowReorderModal,
+        setReorderItem
+      );
+      setRefreshTrigger(prev => {
+        console.log('Refresh trigger incremented:', prev + 1);
+        return prev + 1;
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-4 md:p-6 flex items-center justify-center">
@@ -178,7 +209,6 @@ const Dashboard = () => {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-4 md:p-6 flex items-center justify-center">
@@ -189,29 +219,7 @@ const Dashboard = () => {
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Error Loading Dashboard</h3>
           <p className="text-slate-600 dark:text-slate-400 mb-4">{error}</p>
           <button
-            onClick={() => fetchDashboardData(
-              setLoading,
-              setError,
-              setProducts,
-              setTransactions,
-              showError,
-              calculateKPIs,
-              calculateLowStockItems,
-              calculateRecentTransactions,
-              calculateFrequentProducts,
-              salesFilter,
-              transactionFilter,
-              productsFilter,
-              topProductsFilter,
-              getStartDate,
-              getSalesTitle,
-              formatTimeAgo,
-              setKpiData,
-              setLowStockItems,
-              setRecentTransactions,
-              setFrequentProducts,
-              getStockStatus
-            )}
+            onClick={fetchDashboardDataCallback}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             Retry
@@ -223,7 +231,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-4 md:p-6 space-y-6 md:space-y-8">
-      {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
@@ -246,7 +253,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Sales Filter */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 md:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -255,7 +261,7 @@ const Dashboard = () => {
               Select time period for sales calculations
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
             {[
               { id: 'today', name: 'Today' },
               { id: 'yesterday', name: 'Yesterday' },
@@ -280,16 +286,13 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-5">
         {kpiData.map((kpi, index) => (
           <KPICard key={index} {...kpi} />
         ))}
       </div>
 
-      {/* Main Content Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8">
-        {/* Stock Movement Chart */}
         <div className="xl:col-span-2 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 md:p-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
             <div>
@@ -305,7 +308,7 @@ const Dashboard = () => {
                 Track inward and outward stock flow
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
               {['inward', 'outward', 'both'].map((filter) => (
                 <button
                   key={filter}
@@ -326,7 +329,7 @@ const Dashboard = () => {
             <div className="text-sm text-slate-600 dark:text-slate-400">
               Select time period for stock movement data
             </div>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
               {[
                 { id: 'today', name: 'Today' },
                 { id: 'yesterday', name: 'Yesterday' },
@@ -353,7 +356,6 @@ const Dashboard = () => {
           <StockChart filter={stockFilter} transactions={transactions} period={stockPeriodFilter} />
         </div>
 
-        {/* Low Stock Items */}
         <div className="bg-gradient-to-br from-red-50 via-white to-red-25 dark:from-red-900/10 dark:via-slate-800 dark:to-slate-800 rounded-2xl shadow-lg border border-red-100 dark:border-red-800 p-6 md:p-8">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-xl">
@@ -364,6 +366,10 @@ const Dashboard = () => {
               <p className="text-sm text-red-600 dark:text-red-400">Base items requiring immediate attention</p>
             </div>
           </div>
+
+          {isRefreshing && (
+            <p className="text-slate-600 dark:text-slate-400 text-center mb-4">Refreshing stock data...</p>
+          )}
 
           <div className="space-y-4 max-h-96 overflow-y-auto">
             {lowStockItems.length > 0 ? (
@@ -442,9 +448,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Secondary Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-        {/* Recent Transactions */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 md:p-8">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -513,7 +517,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Frequently Sold Products */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 md:p-8">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -595,7 +598,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Quick Actions */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 md:p-8">
         <div className="mb-6">
           <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
@@ -624,7 +626,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Reorder Modal */}
       <ReorderModal
         show={showReorderModal}
         item={reorderItem}
@@ -632,7 +633,7 @@ const Dashboard = () => {
           setShowReorderModal(false);
           setReorderItem(null);
         }}
-        onSubmit={(formData) => handleReorderSubmit(formData, reorderItem, supabase, showError, fetchDashboardData, setShowReorderModal, setReorderItem)}
+        onSubmit={(formData) => handleReorderSubmitWithRefresh(formData, reorderItem)}
       />
     </div>
   );

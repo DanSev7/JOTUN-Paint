@@ -45,25 +45,29 @@ export const fetchDashboardData = async (
           base_id,
           bases:base_id(name)
         )
-      `);
-    
-    if (productsError) throw productsError;
+      `)
+      .order('name', { ascending: true });
+
+    if (productsError) throw new Error(`Products fetch error: ${productsError.message}`);
 
     console.log('Fetched products:', productsData);
 
     // Process products to include base-specific stock info
     const processedProducts = (productsData || []).map(product => {
-      // Calculate total stock from all bases
-      const totalStock = (product.product_prices || []).reduce((sum, price) => sum + (price.stock_level || 0), 0);
-      
-      // Get all base prices and stock levels
-      const basePrices = (product.product_prices || []).map(price => ({
-        baseId: price.base_id,
-        baseName: price.bases?.name || 'Unknown',
-        unitPrice: price.unit_price || 0,
-        stockLevel: price.stock_level || 0,
-        minStockLevel: price.min_stock_level || product.min_stock_level || 0
-      }));
+      const basePrices = (product.product_prices || []).map(price => {
+        const stockLevel = price.stock_level ?? 0;
+        const minStockLevel = price.min_stock_level ?? product.min_stock_level ?? 0;
+        console.log(`Processing product ${product.name}, base ${price.bases?.name || 'Unknown'}: stockLevel=${stockLevel}, minStockLevel=${minStockLevel}`);
+        return {
+          baseId: price.base_id,
+          baseName: price.bases?.name || 'Unknown',
+          unitPrice: price.unit_price || 0,
+          stockLevel,
+          minStockLevel
+        };
+      });
+
+      const totalStock = basePrices.reduce((sum, price) => sum + (price.stockLevel || 0), 0);
 
       return {
         ...product,
@@ -71,6 +75,8 @@ export const fetchDashboardData = async (
         basePrices
       };
     });
+
+    console.log('Processed products:', processedProducts);
 
     // Fetch transactions with product and base info
     const { data: transactionsData, error: transactionsError } = await supabase
@@ -83,7 +89,7 @@ export const fetchDashboardData = async (
       .order('created_at', { ascending: false })
       .limit(50);
 
-    if (transactionsError) throw transactionsError;
+    if (transactionsError) throw new Error(`Transactions fetch error: ${transactionsError.message}`);
 
     console.log('Fetched transactions:', transactionsData);
 
@@ -107,7 +113,7 @@ export const fetchDashboardData = async (
   } catch (err) {
     console.error('Error in fetchDashboardData:', err);
     setError(err.message || 'Failed to fetch dashboard data');
-    showError('Failed to load dashboard data');
+    showError('Failed to load dashboard data', 3000);
   } finally {
     setLoading(false);
   }

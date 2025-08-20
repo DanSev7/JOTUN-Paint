@@ -560,7 +560,7 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
             </div>
 
             {/* Notes */}
-            {/* <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6">
+            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <FileText className="w-5 h-5" />
                 Additional Information
@@ -578,7 +578,7 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
                   placeholder="Add any additional notes about this transaction..."
                 />
               </div>
-            </div> */}
+            </div>
 
             {/* Action Buttons */}
             <div className="flex items-center justify-between pt-8 border-t border-gray-200 dark:border-gray-700">

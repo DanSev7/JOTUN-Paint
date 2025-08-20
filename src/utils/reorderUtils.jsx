@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Package, DollarSign } from 'lucide-react';
 
 // Handler to initiate reorder
@@ -7,13 +7,13 @@ export const handleReorder = (item, products, setReorderItem, setShowReorderModa
   const product = products.find(p => p.id === item.productId);
   const basePrice = product?.basePrices?.find(bp => bp.baseId === item.baseId);
   const currentUnitPrice = basePrice?.unitPrice || 0;
-  
+
   // Add current unit price to the item
   const itemWithPrice = {
     ...item,
     currentUnitPrice: currentUnitPrice
   };
-  
+
   setReorderItem(itemWithPrice);
   setShowReorderModal(true);
 };
@@ -25,50 +25,126 @@ export const handleReorderSubmit = async (formData, reorderItem, supabase, showS
     showError('No item selected for reorder', 3000);
     return;
   }
-  
+
   try {
     console.log('Submitting reorder with formData:', formData, 'reorderItem:', reorderItem);
-    // Create a stock_in transaction for the reorder
-    const { data, error } = await supabase
-      .from('transactions')
-      .insert([{
-        type: 'stock_in',
-        product_id: reorderItem.productId,
-        base_id: reorderItem.baseId, // Include base_id in the transaction
-        size: reorderItem.size,
-        quantity: formData.quantity,
-        unit_price: formData.unit_price,
-        total_amount: formData.total_amount,
-        status: formData.status,
-        transaction_date: new Date(formData.transaction_date).toISOString(),
-        reference: formData.reference
-      }])
-      .select();
 
-    if (error) {
-      console.error('Supabase insert error:', error);
-      throw error;
+    // Validate form data
+    if (formData.quantity <= 0) {
+      console.log('Form validation failed: Invalid quantity');
+      showError('Quantity must be greater than 0', 3000);
+      return;
+    }
+    if (formData.type === 'purchase' && formData.unit_price <= 0) {
+      console.log('Form validation failed: Invalid unit price for purchase');
+      showError('Unit price must be greater than 0 for purchases', 3000);
+      return;
     }
 
-    console.log('Supabase insert successful, data:', data);
-    // Show success message with 3-second duration
+    // Prepare transaction data
+    const transactionData = {
+      type: formData.type, // 'stock_in' or 'purchase'
+      product_id: reorderItem.productId,
+      base_id: reorderItem.baseId,
+      size: reorderItem.size,
+      quantity: formData.quantity,
+      unit_price: formData.type === 'stock_in' ? 0 : formData.unit_price, // Force 0 for stock_in
+      total_amount: formData.type === 'stock_in' ? 0 : formData.total_amount, // Use provided total_amount for purchase
+      status: formData.status,
+      transaction_date: new Date(formData.transaction_date).toISOString(),
+      reference: formData.reference
+    };
+
+    console.log('Inserting transaction:', transactionData);
+
+    // Insert transaction into Supabase
+    const { data: transactionDataResult, error: transactionError } = await supabase
+      .from('transactions')
+      .insert([transactionData])
+      .select()
+      .single();
+
+    if (transactionError) {
+      console.error('Supabase transaction insert error:', transactionError);
+      throw new Error(`Failed to submit reorder: ${transactionError.message}`);
+    }
+
+    console.log('Supabase transaction insert successful, data:', transactionDataResult);
+
+    // Update product_prices table if status is completed
+    if (formData.status === 'completed') {
+      const { data: productPrice, error: fetchError } = await supabase
+        .from('product_prices')
+        .select('stock_level')
+        .eq('product_id', reorderItem.productId)
+        .eq('base_id', reorderItem.baseId)
+        .single();
+
+      if (fetchError) {
+        console.error('Supabase product_prices fetch error:', fetchError);
+        throw new Error(`Failed to fetch product price record: ${fetchError.message}`);
+      }
+
+      if (!productPrice) {
+        console.error('No product price record found for:', { product_id: reorderItem.productId, base_id: reorderItem.baseId });
+        throw new Error('Product price record not found');
+      }
+
+      const newStock = (productPrice.stock_level || 0) + formData.quantity;
+
+      const { error: updateError } = await supabase
+        .from('product_prices')
+        .update({ stock_level: newStock })
+        .eq('product_id', reorderItem.productId)
+        .eq('base_id', reorderItem.baseId);
+
+      if (updateError) {
+        console.error('Supabase product_prices update error:', updateError);
+        throw new Error(`Failed to update stock: ${updateError.message}`);
+      }
+
+      console.log(`Updated product_prices stock_level to ${newStock} for product_id: ${reorderItem.productId}, base_id: ${reorderItem.baseId}`);
+    } else {
+      console.log(`Skipping stock update for ${formData.type} transaction with status: ${formData.status}`);
+    }
+
+    // Trigger success toast
     console.log('Triggering success toast with type: success');
-    showSuccess('Reorder submitted successfully!', 3000);
-    
-    // Refresh data
+    showSuccess(`Reorder (${formData.type === 'stock_in' ? 'Stock In' : 'Purchase'}) submitted successfully!`, 3000);
+
+    // Refresh dashboard data
     await fetchDashboardData();
-    
-    // Close modal
+
+    // Close modal and reset state
     setShowReorderModal(false);
     setReorderItem(null);
   } catch (err) {
     console.error('Reorder submission error:', err);
-    showError(`Failed to submit reorder: ${err.message}`, 3000);
+    showError(err.message || 'Failed to submit reorder', 3000);
   }
 };
 
 // Reorder Modal Component
 export const ReorderModal = ({ show, item, onClose, onSubmit }) => {
+  const [transactionType, setTransactionType] = useState('purchase');
+  const [status, setStatus] = useState('pending');
+  const [totalAmount, setTotalAmount] = useState('0.00');
+
+  // Update status and form fields when transaction type changes
+  useEffect(() => {
+    setStatus(transactionType === 'stock_in' ? 'completed' : 'pending');
+    const referenceInput = document.getElementById('reorderReference');
+    if (referenceInput) {
+      referenceInput.value = `${transactionType === 'stock_in' ? 'STOCKIN' : 'PURCHASE'}-${Date.now()}`;
+    }
+    const quantityInput = document.getElementById('reorderQuantity');
+    const unitPriceInput = document.getElementById('reorderUnitPrice');
+    const quantity = quantityInput ? parseInt(quantityInput.value) || 0 : 0;
+    const unitPrice = transactionType === 'stock_in' ? 0 : (unitPriceInput ? parseFloat(unitPriceInput.value) || 0 : 0);
+    const newTotalAmount = (quantity * unitPrice).toFixed(2);
+    setTotalAmount(transactionType === 'stock_in' ? '0.00' : newTotalAmount);
+  }, [transactionType]);
+
   if (!show || !item) return null;
 
   return (
@@ -77,15 +153,21 @@ export const ReorderModal = ({ show, item, onClose, onSubmit }) => {
         <div className="p-6 border-b border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-xl">
-              <Package className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              {transactionType === 'stock_in' ? (
+                <Package className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              ) : (
+                <DollarSign className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              )}
             </div>
             <div>
               <h3 className="text-xl font-bold text-blue-700 dark:text-blue-400">Reorder Item</h3>
-              <p className="text-slate-600 dark:text-slate-400 mt-1">Submit reorder for low stock item</p>
+              <p className="text-slate-600 dark:text-slate-400 mt-1">
+                Submit reorder for low stock item ({transactionType === 'stock_in' ? 'Warehouse' : 'Purchase'})
+              </p>
             </div>
           </div>
         </div>
-        
+
         <div className="p-6">
           <div className="mb-6">
             <h4 className="font-semibold text-slate-900 dark:text-white mb-2">
@@ -95,37 +177,62 @@ export const ReorderModal = ({ show, item, onClose, onSubmit }) => {
               Current Stock: {item.currentStock} pcs | Min Required: {item.minStock} pcs
             </p>
           </div>
-          
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            const quantity = parseInt(document.getElementById('reorderQuantity').value) || 0;
-            const unitPrice = parseFloat(document.getElementById('reorderUnitPrice').value) || 0;
-            const totalAmount = quantity * unitPrice;
-            
-            const formData = {
-              quantity: quantity,
-              unit_price: unitPrice,
-              total_amount: totalAmount,
-              status: document.getElementById('reorderStatus').value,
-              transaction_date: document.getElementById('reorderDate').value,
-              reference: document.getElementById('reorderReference').value
-            };
-            
-            console.log('Form validation - quantity:', quantity, 'unitPrice:', unitPrice);
-            if (formData.quantity <= 0 || formData.unit_price <= 0) {
-              console.log('Form validation failed, triggering error toast');
-              document.dispatchEvent(new CustomEvent('showToast', {
-                detail: { message: 'Quantity and unit price must be greater than 0', type: 'error', duration: 3000 }
-              }));
-              return;
-            }
-            
-            console.log('Form validated, submitting:', formData);
-            onSubmit(formData);
-          }} className="space-y-6">
-            
-            {/* Date and Reference */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const quantityInput = document.getElementById('reorderQuantity');
+              const unitPriceInput = document.getElementById('reorderUnitPrice');
+              const quantity = quantityInput ? parseInt(quantityInput.value) || 0 : 0;
+              const unitPrice = transactionType === 'stock_in' ? 0 : (unitPriceInput ? parseFloat(unitPriceInput.value) || 0 : 0);
+              const totalAmountCalc = transactionType === 'stock_in' ? 0 : quantity * unitPrice;
+
+              const formData = {
+                type: transactionType,
+                quantity: quantity,
+                unit_price: unitPrice,
+                total_amount: totalAmountCalc,
+                status: document.getElementById('reorderStatus').value,
+                transaction_date: document.getElementById('reorderDate').value,
+                reference: document.getElementById('reorderReference').value
+              };
+
+              console.log('Form validation - quantity:', quantity, 'unitPrice:', unitPrice, 'type:', transactionType);
+              if (formData.quantity <= 0 || (formData.type === 'purchase' && formData.unit_price <= 0)) {
+                console.log('Form validation failed, triggering error toast');
+                document.dispatchEvent(
+                  new CustomEvent('showToast', {
+                    detail: {
+                      message: formData.quantity <= 0 ? 'Quantity must be greater than 0' : 'Unit price must be greater than 0 for purchases',
+                      type: 'error',
+                      duration: 3000
+                    }
+                  })
+                );
+                return;
+              }
+
+              console.log('Form validated, submitting:', formData);
+              onSubmit(formData);
+            }}
+            className="space-y-6"
+          >
+            {/* Transaction Type, Reorder Date, and Reference */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Transaction Type *
+                </label>
+                <select
+                  id="reorderType"
+                  value={transactionType}
+                  onChange={(e) => setTransactionType(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                >
+                  <option value="purchase">Purchase (JOTUN Ethiopia)</option>
+                  <option value="stock_in">Stock In (Warehouse)</option>
+                </select>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   Reorder Date *
@@ -138,7 +245,6 @@ export const ReorderModal = ({ show, item, onClose, onSubmit }) => {
                   className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                 />
               </div>
-              
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   Reference *
@@ -146,14 +252,14 @@ export const ReorderModal = ({ show, item, onClose, onSubmit }) => {
                 <input
                   type="text"
                   id="reorderReference"
-                  defaultValue={`REORDER-${Date.now()}`}
+                  defaultValue={`PURCHASE-${Date.now()}`}
                   required
                   className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                  placeholder="e.g., REORDER-2024-001"
+                  placeholder="e.g., PURCHASE-2025-001"
                 />
               </div>
             </div>
-            
+
             {/* Quantity and Unit Price */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -167,22 +273,26 @@ export const ReorderModal = ({ show, item, onClose, onSubmit }) => {
                   defaultValue={item.minStock * 2}
                   required
                   onChange={() => {
-                    const quantity = parseInt(document.getElementById('reorderQuantity').value) || 0;
-                    const unitPrice = parseFloat(document.getElementById('reorderUnitPrice').value) || 0;
-                    const total = quantity * unitPrice;
-                    document.getElementById('reorderTotalAmount').value = total.toFixed(2);
+                    const quantityInput = document.getElementById('reorderQuantity');
+                    const unitPriceInput = document.getElementById('reorderUnitPrice');
+                    const quantity = quantityInput ? parseInt(quantityInput.value) || 0 : 0;
+                    const unitPrice = transactionType === 'stock_in' ? 0 : (unitPriceInput ? parseFloat(unitPriceInput.value) || 0 : 0);
+                    const newTotalAmount = (quantity * unitPrice).toFixed(2);
+                    setTotalAmount(transactionType === 'stock_in' ? '0.00' : newTotalAmount);
                   }}
                   onFocus={() => {
-                    const quantity = parseInt(document.getElementById('reorderQuantity').value) || 0;
-                    const unitPrice = parseFloat(document.getElementById('reorderUnitPrice').value) || 0;
-                    const total = quantity * unitPrice;
-                    document.getElementById('reorderTotalAmount').value = total.toFixed(2);
+                    const quantityInput = document.getElementById('reorderQuantity');
+                    const unitPriceInput = document.getElementById('reorderUnitPrice');
+                    const quantity = quantityInput ? parseInt(quantityInput.value) || 0 : 0;
+                    const unitPrice = transactionType === 'stock_in' ? 0 : (unitPriceInput ? parseFloat(unitPriceInput.value) || 0 : 0);
+                    const newTotalAmount = (quantity * unitPrice).toFixed(2);
+                    setTotalAmount(transactionType === 'stock_in' ? '0.00' : newTotalAmount);
                   }}
                   className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                   placeholder="Enter quantity"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   Unit Price *
@@ -192,21 +302,32 @@ export const ReorderModal = ({ show, item, onClose, onSubmit }) => {
                   id="reorderUnitPrice"
                   min="0"
                   step="0.01"
-                  defaultValue={item.currentUnitPrice || "0.00"}
-                  required
+                  defaultValue={transactionType === 'stock_in' ? '0.00' : (item.currentUnitPrice || '0.00')}
+                  disabled={transactionType === 'stock_in'}
+                  required={transactionType === 'purchase'}
                   onChange={() => {
-                    const quantity = parseInt(document.getElementById('reorderQuantity').value) || 0;
-                    const unitPrice = parseFloat(document.getElementById('reorderUnitPrice').value) || 0;
-                    const total = quantity * unitPrice;
-                    document.getElementById('reorderTotalAmount').value = total.toFixed(2);
+                    if (transactionType === 'purchase') {
+                      const quantityInput = document.getElementById('reorderQuantity');
+                      const unitPriceInput = document.getElementById('reorderUnitPrice');
+                      const quantity = quantityInput ? parseInt(quantityInput.value) || 0 : 0;
+                      const unitPrice = unitPriceInput ? parseFloat(unitPriceInput.value) || 0 : 0;
+                      const newTotalAmount = (quantity * unitPrice).toFixed(2);
+                      setTotalAmount(newTotalAmount);
+                    }
                   }}
                   onFocus={() => {
-                    const quantity = parseInt(document.getElementById('reorderQuantity').value) || 0;
-                    const unitPrice = parseFloat(document.getElementById('reorderUnitPrice').value) || 0;
-                    const total = quantity * unitPrice;
-                    document.getElementById('reorderTotalAmount').value = total.toFixed(2);
+                    if (transactionType === 'purchase') {
+                      const quantityInput = document.getElementById('reorderQuantity');
+                      const unitPriceInput = document.getElementById('reorderUnitPrice');
+                      const quantity = quantityInput ? parseInt(quantityInput.value) || 0 : 0;
+                      const unitPrice = unitPriceInput ? parseFloat(unitPriceInput.value) || 0 : 0;
+                      const newTotalAmount = (quantity * unitPrice).toFixed(2);
+                      setTotalAmount(newTotalAmount);
+                    }
                   }}
-                  className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className={`w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white ${
+                    transactionType === 'stock_in' ? 'bg-slate-100 dark:bg-slate-700 opacity-50 cursor-not-allowed' : ''
+                  }`}
                   placeholder="0.00"
                 />
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -214,7 +335,7 @@ export const ReorderModal = ({ show, item, onClose, onSubmit }) => {
                 </p>
               </div>
             </div>
-            
+
             {/* Total Amount */}
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -227,13 +348,13 @@ export const ReorderModal = ({ show, item, onClose, onSubmit }) => {
                 <input
                   type="text"
                   id="reorderTotalAmount"
-                  value="0.00"
+                  value={totalAmount}
                   readOnly
                   className="w-full pl-12 pr-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white font-semibold"
                 />
               </div>
             </div>
-            
+
             {/* Status */}
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -241,7 +362,8 @@ export const ReorderModal = ({ show, item, onClose, onSubmit }) => {
               </label>
               <select
                 id="reorderStatus"
-                defaultValue="pending"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
                 className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
               >
                 <option value="pending">Pending</option>
@@ -249,7 +371,7 @@ export const ReorderModal = ({ show, item, onClose, onSubmit }) => {
                 <option value="cancelled">Cancelled</option>
               </select>
             </div>
-            
+
             {/* Action Buttons */}
             <div className="flex justify-end gap-3 pt-4">
               <button
