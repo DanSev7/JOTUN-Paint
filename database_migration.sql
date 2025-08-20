@@ -38,3 +38,4 @@ FROM product_prices pp
 JOIN products p ON pp.product_id = p.id
 JOIN bases b ON pp.base_id = b.id
 ORDER BY p.name, b.name;
+
