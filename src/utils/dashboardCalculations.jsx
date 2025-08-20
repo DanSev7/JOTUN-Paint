@@ -36,16 +36,16 @@ export const calculateKPIs = (processedProducts, transactionsData, salesFilter, 
       unit: 'pcs',
       // change: '+12.5%',
       changeType: 'positive',
-      icon: <Package className="w-5 h-5" />,
+      icon: <Package className="w-4 h-4" />,
       gradient: 'from-indigo-500 to-indigo-600'
     },
     {
       title: getSalesTitle(salesFilter),
-      value: `$${currentSales.toLocaleString()}`,
+      value: `ETB${currentSales.toLocaleString()}`,
       unit: '',
       // change: '+8.7%',
       changeType: 'positive',
-      icon: <DollarSign className="w-5 h-5" />,
+      icon: <DollarSign className="w-4 h-4" />,
       gradient: 'from-green-500 to-green-600'
     },
     {
@@ -54,7 +54,7 @@ export const calculateKPIs = (processedProducts, transactionsData, salesFilter, 
       unit: 'pcs',
       // change: '+5.2%',
       changeType: 'positive',
-      icon: <Paintbrush className="w-5 h-5" />,
+      icon: <Paintbrush className="w-4 h-4" />,
       gradient: 'from-blue-500 to-blue-600'
     },
     {
@@ -63,7 +63,7 @@ export const calculateKPIs = (processedProducts, transactionsData, salesFilter, 
       unit: 'pcs',
       // change: '+7.8%',
       changeType: 'positive',
-      icon: <Paintbrush className="w-5 h-5" />,
+      icon: <Paintbrush className="w-4 h-4" />,
       gradient: 'from-emerald-500 to-emerald-600'
     },
     {
@@ -72,7 +72,7 @@ export const calculateKPIs = (processedProducts, transactionsData, salesFilter, 
       unit: 'items',
       // change: '-5.2%',
       changeType: 'negative',
-      icon: <AlertTriangle className="w-5 h-5" />,
+      icon: <AlertTriangle className="w-4 h-4" />,
       gradient: 'from-red-500 to-red-600'
     }
   ];
