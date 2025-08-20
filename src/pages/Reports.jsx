@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import StockStatusReport from '../components/reports/StockStatusReport';
 import SalesAnalysisReport from '../components/reports/SalesAnalysisReport';
+import SalesReport from '../components/reports/SalesReport';
 import { 
   BarChart3, 
   LineChart, 
@@ -9,6 +10,7 @@ import {
 import supabase from '../services/supabase';
 import { useToast } from '../contexts/ToastContext';
 import StockInAnalysisReport from '../components/reports/StockInAnalysisReport';
+import js from '@eslint/js';
 
 const Reports = () => {
   const [selectedReport, setSelectedReport] = useState('stock_status');
@@ -87,6 +89,12 @@ const Reports = () => {
       name : 'Stock-In Analysis',
       icon: <LineChart className='w-5 h-5' />,
       description: 'Custom date range stock-in analysis'
+    },
+    {
+      id: 'sales-report',
+      name: 'Sales Report',
+      icon: <LineChart className='w-5 h-5' />,
+      description: 'Daily Sales Report'
     }
   ];
 
@@ -188,6 +196,7 @@ const Reports = () => {
       {/* Report Content */}
       {selectedReport === 'stock_status' && <StockStatusReport products={products} transactions={transactions} />}
       {selectedReport === 'analysis' && <SalesAnalysisReport transactions={transactions} />}
+      {selectedReport === 'sales-report' && <SalesReport transactions={transactions} />}
       {selectedReport === 'stock-in' && <StockInAnalysisReport transactions={transactions} />}
     </div>
   );

@@ -61,13 +61,13 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   const quickActions = [
-    {
-      label: 'Add Stock',
-      icon: <Plus className="w-5 h-5" />,
-      gradient: 'from-blue-500 to-indigo-600',
-      hoverGradient: 'hover:from-blue-600 hover:to-indigo-700',
-      action: () => navigate('/transactions?type=stock_in')
-    },
+    // {
+    //   label: 'Add Stock',
+    //   icon: <Plus className="w-5 h-5" />,
+    //   gradient: 'from-blue-500 to-indigo-600',
+    //   hoverGradient: 'hover:from-blue-600 hover:to-indigo-700',
+    //   action: () => navigate('/transactions?type=stock_in')
+    // },
     {
       label: 'New Sale',
       icon: <ShoppingCart className="w-5 h-5" />,
@@ -607,7 +607,7 @@ const Dashboard = () => {
             Frequently used operations for faster workflow
           </p>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {quickActions.map((action, index) => (
             <button
               key={index}

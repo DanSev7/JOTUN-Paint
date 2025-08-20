@@ -91,7 +91,7 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
     { id: 'purchase', name: 'Purchase', icon: <TrendingDown className="w-4 h-4" />, color: 'text-blue-600' },
     { id: 'stock_in', name: 'Stock In', icon: <Package className="w-4 h-4" />, color: 'text-purple-600' },
     { id: 'stock_out', name: 'Stock Out', icon: <Package className="w-4 h-4" />, color: 'text-orange-600' },
-    { id: 'return', name: 'Return', icon: <TrendingDown className="w-4 h-4" />, color: 'text-red-600' }
+    // { id: 'return', name: 'Return', icon: <TrendingDown className="w-4 h-4" />, color: 'text-red-600' }
   ];
 
   const statuses = [
