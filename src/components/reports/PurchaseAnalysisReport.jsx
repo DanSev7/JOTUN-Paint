@@ -19,7 +19,7 @@ const StockInAnalysisReport = ({ transactions }) => {
 
     const rows = [];
     const filtered = transactions.filter(t => {
-      if (t.type !== 'stock_in') return false;
+      if (t.type !== 'purchase') return false;
       const ts = new Date(t.transaction_date || t.created_at);
       return ts >= start && ts < end;
     });
@@ -42,7 +42,7 @@ const StockInAnalysisReport = ({ transactions }) => {
   };
 
   const headers = ['Date', 'Product Name', 'Size', 'Base', 'Quantity Received', 'Total Cost'];
-  const exportAnalysis = () => exportToExcel(`stock_in_analysis_${startDate}_to_${endDate}.xlsx`, headers, analysisRows, formatCurrency(analysisTotal));
+  const exportAnalysis = () => exportToExcel(`Purchase${startDate}_to_${endDate}.xlsx`, headers, analysisRows, formatCurrency(analysisTotal));
 
   const renderTable = (rows) => (
     <div className="overflow-x-auto">

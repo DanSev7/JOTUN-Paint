@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import TransactionForm from '../components/transactions/TransactionForm';
 import TransactionDetails from '../components/transactions/TransactionDetails';
 import { Plus, Search, TrendingUp, TrendingDown, Package, Eye, Edit, Trash2, ShoppingCart } from 'lucide-react';
+
 import supabase from '../services/supabase';
 import { useAuthStore } from '../store/useAuthStore';
 
@@ -83,7 +84,6 @@ const Transactions = () => {
     { id: 'purchase', name: 'Purchases' },
     { id: 'stock_in', name: 'Stock In' },
     { id: 'stock_out', name: 'Stock Out' },
-    { id: 'return', name: 'Returns' }
   ];
 
   const filteredTransactions = transactions.filter(transaction => {
@@ -276,13 +276,13 @@ const Transactions = () => {
       )}
 
       {!loading && !error && (
-        <div className="w-full overflow-x-auto scrollbar-thin scrollbar-thumb-slate-400 dark:scrollbar-thumb-slate-600 scrollbar-track-slate-100 dark:scrollbar-track-slate-800 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-          <div className="inline-block min-w-full">
-            <table className="w-full table-fixed">
-              <thead className="bg-slate-50 dark:bg-slate-700">
+        <div className="w-full bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 sm:p-6">
+          <div className="overflow-x-auto lg:overflow-x-hidden">
+            <table className="w-full min-w-[750px] lg:min-w-0 text-sm">
+              <thead className="bg-slate-100 dark:bg-slate-700/50 sticky top-0 z-10">
                 <tr>
                   {role === 'admin' && (
-                    <th className="px-2 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider w-10">
+                    <th className="w-10 px-2 py-3 text-left font-semibold text-slate-700 dark:text-slate-300 sticky left-0 z-20 bg-slate-100 dark:bg-slate-700/50">
                       <input
                         type="checkbox"
                         checked={selectedTransactions.length === filteredTransactions.length && filteredTransactions.length > 0}
@@ -297,40 +297,40 @@ const Transactions = () => {
                       />
                     </th>
                   )}
-                  <th className="px-2 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[18%]">
+                  <th className="w-[160px] px-2 py-3 text-left font-semibold text-slate-700 dark:text-slate-300 sticky left-[40px] lg:left-0 z-20 bg-slate-100 dark:bg-slate-700/50 lg:w-[18%]">
                     Transaction
                   </th>
-                  <th className="px-2 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[18%]">
+                  <th className="w-[120px] px-2 py-3 text-left font-semibold text-slate-700 dark:text-slate-300 sticky left-[200px] lg:left-0 z-20 bg-slate-100 dark:bg-slate-700/50 lg:w-[18%]">
                     Product
                   </th>
-                  <th className="px-2 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[18%]">
+                  <th className="w-[100px] px-2 py-3 text-left font-semibold text-slate-700 dark:text-slate-300 lg:w-[18%]">
                     Size
                   </th>
-                  <th className="px-2 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[14%]">
+                  <th className="w-[100px] px-2 py-3 text-left font-semibold text-slate-700 dark:text-slate-300 lg:w-[14%]">
                     Base
                   </th>
-                  <th className="px-2 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[10%]">
+                  <th className="w-[60px] px-2 py-3 text-left font-semibold text-slate-700 dark:text-slate-300 lg:w-[10%]">
                     Qty
                   </th>
-                  <th className="px-2 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[14%]">
+                  <th className="w-[100px] px-2 py-3 text-left font-semibold text-slate-700 dark:text-slate-300 lg:w-[14%]">
                     Total
                   </th>
-                  <th className="px-2 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[14%]">
+                  <th className="w-[100px] px-2 py-3 text-left font-semibold text-slate-700 dark:text-slate-300 lg:w-[14%]">
                     Date
                   </th>
-                  <th className="px-2 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[12%]">
+                  <th className="w-[100px] px-2 py-3 text-left font-semibold text-slate-700 dark:text-slate-300 lg:w-[12%]">
                     Status
                   </th>
-                  <th className="px-2 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider w-[14%]">
+                  <th className="w-[100px] px-2 py-3 text-left font-semibold text-slate-700 dark:text-slate-300 lg:w-[14%]">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                 {filteredTransactions.map((transaction) => (
-                  <tr key={transaction.id} className="hover:bg-slate-50 dark:hover:bg-slate-700">
+                  <tr key={transaction.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
                     {role === 'admin' && (
-                      <td className="px-2 py-4 whitespace-nowrap w-10">
+                      <td className="w-10 px-2 py-2 whitespace-nowrap sticky left-0 z-10 bg-white dark:bg-slate-800">
                         <input
                           type="checkbox"
                           checked={selectedTransactions.some(t => t.id === transaction.id)}
@@ -339,7 +339,7 @@ const Transactions = () => {
                         />
                       </td>
                     )}
-                    <td className="px-2 py-4 whitespace-nowrap w-[18%]">
+                    <td className="w-[160px] px-2 py-2 whitespace-nowrap sticky left-[40px] lg:left-0 z-10 bg-white dark:bg-slate-800 lg:w-[18%]">
                       <div className="flex items-center">
                         {getTypeIcon(transaction.type)}
                         <div className="ml-2 truncate">
@@ -352,27 +352,27 @@ const Transactions = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="px-2 py-4 whitespace-nowrap w-[18%]">
+                    <td className="w-[120px] px-2 py-2 whitespace-nowrap sticky left-[200px] lg:left-0 z-10 bg-white dark:bg-slate-800 lg:w-[18%]">
                       <div className="text-sm font-medium text-slate-900 dark:text-white truncate">
                         {transaction.products?.name}
                       </div>
                     </td>
-                    <td className="px-2 py-4 whitespace-nowrap w-[18%]">
-                      <div className="text-sm text-slate-900 truncate">
+                    <td className="w-[100px] px-2 py-2 whitespace-nowrap lg:w-[18%]">
+                      <div className="text-sm text-slate-900 dark:text-white truncate">
                         {transaction.products?.size}
                       </div>
                     </td>
-                    <td className="px-2 py-4 whitespace-nowrap w-[14%]">
+                    <td className="w-[100px] px-2 py-2 whitespace-nowrap lg:w-[14%]">
                       <div className="text-sm text-slate-900 dark:text-white truncate">
                         {transaction.bases?.name}
                       </div>
                     </td>
-                    <td className="px-2 py-4 whitespace-nowrap w-[10%]">
+                    <td className="w-[60px] px-2 py-2 whitespace-nowrap lg:w-[10%]">
                       <div className="text-sm text-slate-900 dark:text-white">
                         {transaction.quantity}
                       </div>
                     </td>
-                    <td className="px-2 py-4 whitespace-nowrap w-[14%]">
+                    <td className="w-[100px] px-2 py-2 whitespace-nowrap lg:w-[14%]">
                       <div className={`text-sm font-medium truncate ${
                         transaction.type === 'purchase' || transaction.type === 'stock_out' 
                           ? 'text-red-600 dark:text-red-400' 
@@ -381,17 +381,17 @@ const Transactions = () => {
                         {formatCurrency(transaction.total_amount)}
                       </div>
                     </td>
-                    <td className="px-2 py-4 whitespace-nowrap w-[14%]">
+                    <td className="w-[100px] px-2 py-2 whitespace-nowrap lg:w-[14%]">
                       <div className="text-sm text-slate-900 dark:text-white truncate">
                         {formatDate(transaction.transaction_date)}
                       </div>
                     </td>
-                    <td className="px-2 py-4 whitespace-nowrap w-[12%]">
+                    <td className="w-[100px] px-2 py-2 whitespace-nowrap lg:w-[12%]">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium truncate ${getStatusColor(transaction.status)}`}>
                         {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
                       </span>
                     </td>
-                    <td className="px-2 py-4 whitespace-nowrap text-right text-sm font-medium flex items-center gap-1 w-[14%]">
+                    <td className="w-[100px] px-2 py-2 whitespace-nowrap text-right text-sm font-medium flex items-center gap-1 lg:w-[14%]">
                       <button
                         onClick={() => {
                           setSelectedTransaction(transaction);
@@ -473,7 +473,7 @@ const Transactions = () => {
         </div>
       )}
 
-{!loading && !error && filteredTransactions.length === 0 && (
+      {!loading && !error && filteredTransactions.length === 0 && (
         <div className="text-center py-12">
           <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
             <ShoppingCart className="w-12 h-12 text-slate-400" />

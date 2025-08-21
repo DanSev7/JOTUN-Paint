@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import supabase from '../services/supabase';
 import { useToast } from '../contexts/ToastContext';
-import StockInAnalysisReport from '../components/reports/StockInAnalysisReport';
+import PurchaseAnalysisReport from '../components/reports/PurchaseAnalysisReport';
 import js from '@eslint/js';
 
 const Reports = () => {
@@ -85,17 +85,17 @@ const Reports = () => {
       description: 'Custom date range sales analysis' 
     },
     {
-      id: 'stock-in',
-      name : 'Stock-In Analysis',
+      id: 'purchase',
+      name : 'Purchase Analysis',
       icon: <LineChart className='w-5 h-5' />,
-      description: 'Custom date range stock-in analysis'
+      description: 'Custom date range purchase analysis'
     },
-    {
-      id: 'sales-report',
-      name: 'Sales Report',
-      icon: <LineChart className='w-5 h-5' />,
-      description: 'Daily Sales Report'
-    }
+    // {
+    //   id: 'sales-report',
+    //   name: 'Sales Report',
+    //   icon: <LineChart className='w-5 h-5' />,
+    //   description: 'Daily Sales Report'
+    // }
   ];
 
   // Loading state
@@ -197,7 +197,7 @@ const Reports = () => {
       {selectedReport === 'stock_status' && <StockStatusReport products={products} transactions={transactions} />}
       {selectedReport === 'analysis' && <SalesAnalysisReport transactions={transactions} />}
       {selectedReport === 'sales-report' && <SalesReport transactions={transactions} />}
-      {selectedReport === 'stock-in' && <StockInAnalysisReport transactions={transactions} />}
+      {selectedReport === 'purchase' && <PurchaseAnalysisReport transactions={transactions} />}
     </div>
   );
 };
