@@ -109,7 +109,6 @@ export const handleReorderSubmit = async (formData, reorderItem, supabase, showS
     }
 
     // Trigger success toast
-    // console.log('Triggering success toast with type: success');
     showSuccess(`Reorder (${formData.type === 'stock_in' ? 'Stock In' : 'Purchase'}) submitted successfully!`, 3000);
 
     // Refresh dashboard data
@@ -150,30 +149,30 @@ export const ReorderModal = ({ show, item, onClose, onSubmit }) => {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-2xl w-full">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+        <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-xl">
+            <div className="p-2 sm:p-3 bg-blue-100 dark:bg-blue-900/20 rounded-xl">
               {transactionType === 'stock_in' ? (
-                <Package className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <Package className="w-5 sm:w-6 h-5 sm:h-6 text-blue-600 dark:text-blue-400" />
               ) : (
-                <DollarSign className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <DollarSign className="w-5 sm:w-6 h-5 sm:h-6 text-blue-600 dark:text-blue-400" />
               )}
             </div>
             <div>
-              <h3 className="text-xl font-bold text-blue-700 dark:text-blue-400">Reorder Item</h3>
-              <p className="text-slate-600 dark:text-slate-400 mt-1">
+              <h3 className="text-lg sm:text-xl font-bold text-blue-700 dark:text-blue-400">Reorder Item</h3>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
                 Submit reorder for low stock item ({transactionType === 'stock_in' ? 'Warehouse' : 'Purchase'})
               </p>
             </div>
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <div className="mb-6">
-            <h4 className="font-semibold text-slate-900 dark:text-white mb-2">
+            <h4 className="font-semibold text-sm sm:text-base text-slate-900 dark:text-white mb-2">
               {item.name} - {item.baseName}
             </h4>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
               Current Stock: {item.currentStock} pcs | Min Required: {item.minStock} pcs
             </p>
           </div>
@@ -215,26 +214,26 @@ export const ReorderModal = ({ show, item, onClose, onSubmit }) => {
               console.log('Form validated, submitting:', formData);
               onSubmit(formData);
             }}
-            className="space-y-6"
+            className="space-y-4 sm:space-y-6"
           >
             {/* Transaction Type, Reorder Date, and Reference */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   Transaction Type *
                 </label>
                 <select
                   id="reorderType"
                   value={transactionType}
                   onChange={(e) => setTransactionType(e.target.value)}
-                  className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className="w-full min-w-[100px] px-3 py-2 sm:px-4 sm:py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm"
                 >
                   <option value="purchase">Purchase (JOTUN Ethiopia)</option>
                   <option value="stock_in">Stock In (Warehouse)</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   Reorder Date *
                 </label>
                 <input
@@ -242,11 +241,11 @@ export const ReorderModal = ({ show, item, onClose, onSubmit }) => {
                   id="reorderDate"
                   defaultValue={new Date().toISOString().split('T')[0]}
                   required
-                  className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className="w-full min-w-[100px] px-3 py-2 sm:px-4 sm:py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   Reference *
                 </label>
                 <input
@@ -254,16 +253,16 @@ export const ReorderModal = ({ show, item, onClose, onSubmit }) => {
                   id="reorderReference"
                   defaultValue={`PURCHASE-${Date.now()}`}
                   required
-                  className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className="w-full min-w-[100px] px-3 py-2 sm:px-4 sm:py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm"
                   placeholder="e.g., PURCHASE-2025-001"
                 />
               </div>
             </div>
 
             {/* Quantity and Unit Price */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   Reorder Quantity *
                 </label>
                 <input
@@ -288,13 +287,13 @@ export const ReorderModal = ({ show, item, onClose, onSubmit }) => {
                     const newTotalAmount = (quantity * unitPrice).toFixed(2);
                     setTotalAmount(transactionType === 'stock_in' ? '0.00' : newTotalAmount);
                   }}
-                  className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className="w-full min-w-[100px] px-3 py-2 sm:px-4 sm:py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm"
                   placeholder="Enter quantity"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   Unit Price *
                 </label>
                 <input
@@ -325,12 +324,12 @@ export const ReorderModal = ({ show, item, onClose, onSubmit }) => {
                       setTotalAmount(newTotalAmount);
                     }
                   }}
-                  className={`w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white ${
+                  className={`w-full min-w-[100px] px-3 py-2 sm:px-4 sm:py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm ${
                     transactionType === 'stock_in' ? 'bg-slate-100 dark:bg-slate-700 opacity-50 cursor-not-allowed' : ''
                   }`}
                   placeholder="0.00"
                 />
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
                   Current price: ${item.currentUnitPrice || '0.00'} per pc
                 </p>
               </div>
@@ -338,33 +337,33 @@ export const ReorderModal = ({ show, item, onClose, onSubmit }) => {
 
             {/* Total Amount */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Total Amount
               </label>
               <div className="relative">
-                <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400">
-                  <DollarSign className="w-5 h-5" />
+                <div className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-slate-400">
+                  <DollarSign className="w-4 sm:w-5 h-4 sm:h-5" />
                 </div>
                 <input
                   type="text"
                   id="reorderTotalAmount"
                   value={totalAmount}
                   readOnly
-                  className="w-full pl-12 pr-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white font-semibold"
+                  className="w-full min-w-[100px] pl-10 sm:pl-12 pr-3 sm:pr-4 py-2 sm:py-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white font-semibold text-xs sm:text-sm"
                 />
               </div>
             </div>
 
             {/* Status */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Status
               </label>
               <select
                 id="reorderStatus"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                className="w-full min-w-[100px] px-3 py-2 sm:px-4 sm:py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm"
               >
                 <option value="pending">Pending</option>
                 <option value="completed">Completed</option>
@@ -377,13 +376,13 @@ export const ReorderModal = ({ show, item, onClose, onSubmit }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-600 transition-all duration-150"
+                className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-600 transition-all duration-150"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all duration-150"
+                className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all duration-150"
               >
                 Submit Reorder
               </button>
