@@ -109,7 +109,7 @@ export const handleReorderSubmit = async (formData, reorderItem, supabase, showS
     }
 
     // Trigger success toast
-    console.log('Triggering success toast with type: success');
+    // console.log('Triggering success toast with type: success');
     showSuccess(`Reorder (${formData.type === 'stock_in' ? 'Stock In' : 'Purchase'}) submitted successfully!`, 3000);
 
     // Refresh dashboard data

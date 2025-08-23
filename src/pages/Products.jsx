@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
+  X,
   Paintbrush,
   Tag,
   DollarSign,
@@ -39,7 +40,6 @@ const Products = () => {
     if (stockLevel <= minStockLevel) {
       return { status: 'low_stock', label: 'Low Stock', color: 'text-amber-700 dark:text-amber-300', bg: 'bg-amber-50 dark:bg-amber-900/20', border: 'border-amber-200 dark:border-amber-700' };
     }
-    // Merge 'medium' and 'good' into 'in_stock'
     return { status: 'in_stock', label: 'In Stock', color: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-200 dark:border-emerald-700' };
   };
 
@@ -53,7 +53,6 @@ const Products = () => {
     setError(null);
     
     try {
-      // Fetch products with their base prices, stock levels, and min/max stock levels
       const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select(`
@@ -70,16 +69,11 @@ const Products = () => {
       
       if (productsError) throw productsError;
 
-      // Process products to include base-specific price and stock info
       const processedProducts = (productsData || []).map(product => {
-        // Calculate total stock and total min stock from all bases
         const totalStock = (product.product_prices || []).reduce((sum, price) => sum + (price.stock_level || 0), 0);
         const totalMinStock = (product.product_prices || []).reduce((sum, price) => sum + (price.min_stock_level || 0), 0);
-        
-        // Determine overall product status using getTotalStockStatus
         const { status } = getTotalStockStatus(totalStock, totalMinStock);
 
-        // Process base-specific information with status
         const basePrices = (product.product_prices || []).map(price => {
           const baseStatus = getStockStatus(price.stock_level, price.min_stock_level);
           return {
@@ -106,8 +100,6 @@ const Products = () => {
       });
 
       setProducts(processedProducts);
-
-      // Extract unique categories from products
       const uniqueCategories = [...new Set(productsData.map(p => p.category).filter(Boolean))];
       const categoryOptions = uniqueCategories.map(cat => ({
         id: cat.toLowerCase().replace(/\s+/g, '_'),
@@ -115,7 +107,6 @@ const Products = () => {
         icon: <Paintbrush className="w-4 h-4" />
       }));
 
-      // Add "All Products" option
       setCategories([
         { id: 'all', name: 'All Products', icon: <Package className="w-4 h-4" /> },
         ...categoryOptions
@@ -197,28 +188,170 @@ const Products = () => {
   };
 
   const getStockLevel = (stock, minStock) => {
-    if (minStock <= 0) return 100; // Avoid division by zero
+    if (minStock <= 0) return 100;
     const percentage = (stock / minStock) * 100;
     return Math.min(percentage, 100);
   };
 
-  // Calculate stats for cards (Low Stock and Out of Stock by base)
-  const getStats = () => {
+  const { totalProducts, inStockCount, lowStockCount, outOfStockCount } = (() => {
     const totalProducts = products.length;
     const inStockCount = products.filter(p => p.status === 'in_stock').length;
     const lowStockCount = products.reduce((count, p) => 
       count + p.basePrices.filter(bp => bp.status === 'low_stock').length, 0);
     const outOfStockCount = products.reduce((count, p) => 
       count + p.basePrices.filter(bp => bp.status === 'out_of_stock').length, 0);
-
     return { totalProducts, inStockCount, lowStockCount, outOfStockCount };
-  };
+  })();
 
-  const { totalProducts, inStockCount, lowStockCount, outOfStockCount } = getStats();
+  // View Details Component
+  const ProductDetails = ({ product, onClose }) => {
+    const statusStyle = getStatusStyle(product.status);
+    const stockLevel = getStockLevel(product.totalStock, product.totalMinStock);
+
+    return (
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-3xl w-full max-h-[90vh] overflow-y-auto p-8">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <div className="p-4 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl">
+              <Paintbrush className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{product.name}</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">SKU: {product.code}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="space-y-8">
+          <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+              <Package className="w-5 h-5" />
+              General Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Category</p>
+                <p className="text-base font-medium text-slate-900 dark:text-white">{product.category || 'Uncategorized'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Size</p>
+                <p className="text-base font-medium text-slate-900 dark:text-white">{product.size || 'N/A'}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5" />
+              Stock Status
+            </h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-slate-600 dark:text-slate-400">Total Stock</span>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusStyle.bg} ${statusStyle.text} ${statusStyle.border}`}>
+                    {statusStyle.icon} {getStatusText(product.status)}
+                  </span>
+                </div>
+                <p className="text-base font-medium text-slate-900 dark:text-white">{product.totalStock} / {product.totalMinStock} pcs</p>
+              </div>
+              <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3">
+                <div
+                  className={`h-3 rounded-full transition-all duration-500 ${
+                    stockLevel < 25 ? 'bg-red-500' : 
+                    stockLevel < 50 ? 'bg-amber-500' : 
+                    'bg-emerald-500'
+                  }`}
+                  style={{ width: `${stockLevel}%` }}
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          {product.basePrices && product.basePrices.length > 0 && (
+            <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                <DollarSign className="w-5 h-5" />
+                Base Prices & Stock
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {product.basePrices.map((base, index) => {
+                  const baseStatusStyle = getStatusStyle(base.status);
+                  const baseStockLevel = getStockLevel(base.stockLevel, base.minStockLevel);
+                  return (
+                    <div key={index} className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-600">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-base font-medium text-slate-900 dark:text-white">{base.baseName}</p>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${baseStatusStyle.bg} ${baseStatusStyle.text} ${baseStatusStyle.border}`}>
+                          {base.statusLabel}
+                        </span>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-600 dark:text-slate-400">Unit Price</span>
+                          <span className="font-medium text-slate-900 dark:text-white">${base.unitPrice.toFixed(2)}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-600 dark:text-slate-400">Stock Level</span>
+                          <span className="font-medium text-slate-900 dark:text-white">{base.stockLevel} pcs</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-600 dark:text-slate-400">Min Stock</span>
+                          <span className="font-medium text-slate-900 dark:text-white">{base.minStockLevel} pcs</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-600 dark:text-slate-400">Max Stock</span>
+                          <span className="font-medium text-slate-900 dark:text-white">{base.maxStockLevel} pcs</span>
+                        </div>
+                        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 mt-2">
+                          <div
+                            className={`h-2 rounded-full transition-all duration-500 ${
+                              baseStockLevel < 25 ? 'bg-red-500' : 
+                              baseStockLevel < 50 ? 'bg-amber-500' : 
+                              'bg-emerald-500'
+                            }`}
+                            style={{ width: `${baseStockLevel}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {product.description && (
+            <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                <Tag className="w-5 h-5" />
+                Description
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{product.description}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end mt-6">
+          <button
+            onClick={onClose}
+            className="px-6 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-600 transition-all duration-200"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-4 md:p-6 space-y-6 md:space-y-8">
-      {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl lg:text-4xl mt-5 font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
@@ -242,7 +375,6 @@ const Products = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
           <div className="flex items-center gap-4">
@@ -293,10 +425,8 @@ const Products = () => {
         </div>
       </div>
 
-      {/* Filters and Search */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 md:p-8">
         <div className="flex flex-col lg:flex-row gap-4">
-          {/* Search */}
           <div className="flex-1">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -309,8 +439,6 @@ const Products = () => {
               />
             </div>
           </div>
-
-          {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-4">
             <select
               value={selectedCategory}
@@ -323,7 +451,6 @@ const Products = () => {
                 </option>
               ))}
             </select>
-
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
@@ -335,7 +462,6 @@ const Products = () => {
                 </option>
               ))}
             </select>
-
             <div className="flex rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
               <button
                 onClick={() => setViewMode('grid')}
@@ -354,7 +480,6 @@ const Products = () => {
         </div>
       </div>
 
-      {/* Results Info */}
       <div className="flex items-center justify-between">
         <p className="text-slate-600 dark:text-slate-400">
           Showing <span className="font-semibold text-slate-900 dark:text-white">{filteredProducts.length}</span> of{' '}
@@ -362,7 +487,6 @@ const Products = () => {
         </p>
       </div>
 
-      {/* Loading/Error State */}
       {loading && (
         <div className="flex justify-center items-center py-12">
           <span className="text-lg text-slate-500 dark:text-slate-400 animate-pulse">Loading products...</span>
@@ -374,12 +498,7 @@ const Products = () => {
         </div>
       )}
 
-      {/* Products Grid/List */}
-      <div className={`${
-        viewMode === 'grid' 
-          ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6' 
-          : 'space-y-4'
-      }`}>
+      <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6' : 'space-y-4'}>
         {filteredProducts.map(product => {
           const statusStyle = getStatusStyle(product.status);
           const stockLevel = getStockLevel(product.totalStock, product.totalMinStock);
@@ -391,45 +510,29 @@ const Products = () => {
                   <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl flex items-center justify-center">
                     <Paintbrush className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                   </div>
-                  
                   <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">
-                        {product.name}
-                      </h3>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        SKU: {product.code}
-                      </p>
+                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">{product.name}</h3>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">SKU: {product.code}</p>
                     </div>
-                    
                     <div className="text-sm">
                       <p className="text-slate-600 dark:text-slate-400">Category</p>
-                      <p className="font-medium text-slate-900 dark:text-white">
-                        {product.category || 'Uncategorized'}
-                      </p>
+                      <p className="font-medium text-slate-900 dark:text-white">{product.category || 'Uncategorized'}</p>
                     </div>
-                    
                     <div className="text-sm">
                       <p className="text-slate-600 dark:text-slate-400">Total Stock</p>
-                      <p className="font-medium text-slate-900 dark:text-white">
-                        {product.totalStock} pcs
-                      </p>
+                      <p className="font-medium text-slate-900 dark:text-white">{product.totalStock} pcs</p>
                     </div>
-                    
                     <div className="text-sm">
                       <p className="text-slate-600 dark:text-slate-400">Bases</p>
-                      <p className="font-medium text-slate-900 dark:text-white">
-                        {product.basePrices?.length || 0} bases
-                      </p>
+                      <p className="font-medium text-slate-900 dark:text-white">{product.basePrices?.length || 0} bases</p>
                     </div>
                   </div>
-                  
                   <div className="flex items-center gap-3">
                     <span className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border ${statusStyle.bg} ${statusStyle.text} ${statusStyle.border}`}>
                       {statusStyle.icon}
                       {getStatusText(product.status)}
                     </span>
-                    
                     <div className="flex gap-2">
                       <button
                         className="p-2 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all duration-200"
@@ -458,7 +561,6 @@ const Products = () => {
 
           return (
             <div key={product.id} className="group bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
-              {/* Product Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
@@ -466,9 +568,7 @@ const Products = () => {
                       <Paintbrush className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
-                        {product.name}
-                      </h3>
+                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">{product.name}</h3>
                       <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
                         <Tag className="w-3 h-3" />
                         {product.code}
@@ -476,20 +576,15 @@ const Products = () => {
                     </div>
                   </div>
                 </div>
-                
                 <span className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border ${statusStyle.bg} ${statusStyle.text} ${statusStyle.border}`}>
                   {statusStyle.icon}
                   {getStatusText(product.status)}
                 </span>
               </div>
-
-              {/* Stock Level Bar */}
               <div className="mb-4">
                 <div className="flex items-center justify-between text-sm mb-2">
                   <span className="text-slate-600 dark:text-slate-400">Total Stock Level</span>
-                  <span className="font-medium text-slate-900 dark:text-white">
-                    {product.totalStock} / {product.totalMinStock} pcs
-                  </span>
+                  <span className="font-medium text-slate-900 dark:text-white">{product.totalStock} / {product.totalMinStock} pcs</span>
                 </div>
                 <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
                   <div
@@ -502,31 +597,22 @@ const Products = () => {
                   ></div>
                 </div>
               </div>
-
-              {/* Product Details */}
               <div className="space-y-3 mb-4">
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                     <Package className="w-4 h-4" />
                     Category:
                   </div>
-                  <span className="font-medium text-slate-900 dark:text-white">
-                    {product.category || 'Uncategorized'}
-                  </span>
+                  <span className="font-medium text-slate-900 dark:text-white">{product.category || 'Uncategorized'}</span>
                 </div>
-                
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                     <Package className="w-4 h-4" />
                     Size:
                   </div>
-                  <span className="font-medium text-slate-900 dark:text-white">
-                    {product.size}
-                  </span>
+                  <span className="font-medium text-slate-900 dark:text-white">{product.size}</span>
                 </div>
               </div>
-
-              {/* Base Prices and Stock */}
               {product.basePrices && product.basePrices.length > 0 && (
                 <div className="mb-4">
                   <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 mb-3">
@@ -538,13 +624,9 @@ const Products = () => {
                       const baseStatusStyle = getStatusStyle(base.status);
                       return (
                         <div key={index} className="flex items-center justify-between text-xs bg-slate-50 dark:bg-slate-700/50 rounded-lg px-3 py-2">
-                          <span className="font-medium text-slate-700 dark:text-slate-300">
-                            {base.baseName}
-                          </span>
+                          <span className="font-medium text-slate-700 dark:text-slate-300">{base.baseName}</span>
                           <div className="flex items-center gap-3">
-                            <span className="text-slate-600 dark:text-slate-400">
-                              ${base.unitPrice.toFixed(2)}
-                            </span>
+                            <span className="text-slate-600 dark:text-slate-400">${base.unitPrice.toFixed(2)}</span>
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${baseStatusStyle.bg} ${baseStatusStyle.text}`}>
                               {base.stockLevel} pcs ({base.statusLabel})
                             </span>
@@ -555,13 +637,7 @@ const Products = () => {
                   </div>
                 </div>
               )}
-
-              {/* Description */}
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-2">
-                {product.description || 'No description available'}
-              </p>
-
-              {/* Action Buttons */}
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-2">{product.description || 'No description available'}</p>
               <div className="flex gap-2 pt-4 border-t border-slate-100 dark:border-slate-700">
                 <button
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all duration-200 group-hover:scale-105"
@@ -589,16 +665,13 @@ const Products = () => {
         })}
       </div>
 
-      {/* Empty State */}
       {!loading && !error && filteredProducts.length === 0 && (
         <div className="text-center py-12">
           <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
             <Package className="w-12 h-12 text-slate-400" />
           </div>
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">No products found</h3>
-          <p className="text-slate-600 dark:text-slate-400 mb-4">
-            Try adjusting your search criteria or add a new product.
-          </p>
+          <p className="text-slate-600 dark:text-slate-400 mb-4">Try adjusting your search criteria or add a new product.</p>
           <button
             onClick={() => setShowAddForm(true)}
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-xl transition-all duration-200"
@@ -609,7 +682,6 @@ const Products = () => {
         </div>
       )}
 
-      {/* Add Product Modal */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -620,7 +692,7 @@ const Products = () => {
           </div>
         </div>
       )}
-      {/* Edit Product Modal */}
+
       {showEditForm && selectedProduct && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -636,20 +708,15 @@ const Products = () => {
         </div>
       )}
 
-      {/* View Product Modal */}
       {showViewForm && selectedProduct && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-6xl w-full max-h-[95vh] overflow-y-auto">
-            <ProductForm
-              product={selectedProduct}
-              viewMode={true}
-              onClose={() => {
-                setShowViewForm(false);
-                setSelectedProduct(null);
-              }}
-              onSave={fetchData}
-            />
-          </div>
+          <ProductDetails
+            product={selectedProduct}
+            onClose={() => {
+              setShowViewForm(false);
+              setSelectedProduct(null);
+            }}
+          />
         </div>
       )}
     </div>

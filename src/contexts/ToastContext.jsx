@@ -14,7 +14,7 @@ export const useToast = () => {
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
-  const addToast = useCallback((message, type = 'info', duration = 5000) => {
+  const addToast = useCallback((message, type = 'info', duration = 2000) => {
     const id = Date.now();
     const newToast = { id, message, type, duration, isVisible: true };
     
@@ -28,19 +28,19 @@ export const ToastProvider = ({ children }) => {
     setToasts(prev => prev.filter(toast => toast.id !== id));
   }, []);
 
-  const showSuccess = useCallback((message, duration = 5000) => {
+  const showSuccess = useCallback((message, duration = 2000) => {
     return addToast(message, 'success', duration);
   }, [addToast]);
 
-  const showError = useCallback((message, duration = 5000) => {
+  const showError = useCallback((message, duration = 2000) => {
     return addToast(message, 'error', duration);
   }, [addToast]);
 
-  const showWarning = useCallback((message, duration = 5000) => {
+  const showWarning = useCallback((message, duration = 2000) => {
     return addToast(message, 'warning', duration);
   }, [addToast]);
 
-  const showInfo = useCallback((message, duration = 5000) => {
+  const showInfo = useCallback((message, duration = 2000) => {
     return addToast(message, 'info', duration);
   }, [addToast]);
 
@@ -48,7 +48,7 @@ export const ToastProvider = ({ children }) => {
   useEffect(() => {
     const handleShowToast = (e) => {
       console.log('Received custom showToast event:', e.detail);
-      addToast(e.detail.message, e.detail.type, e.detail.duration || 5000);
+      addToast(e.detail.message, e.detail.type, e.detail.duration || 2000);
     };
     document.addEventListener('showToast', handleShowToast);
     return () => document.removeEventListener('showToast', handleShowToast);
