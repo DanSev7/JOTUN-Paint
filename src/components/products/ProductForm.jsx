@@ -406,7 +406,7 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
                     <button
                       type="button"
                       onClick={generateSKU}
-                      className="px-4 py-2 text-sm font-semibold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/30 transition"
+                      className="px-4 py-2 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/30 transition"
                     >
                       Generate
                     </button>
@@ -457,7 +457,7 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
                       type="number"
                       min="0"
                       step="0.01"
-                      className="w-full pl-8 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+                      className="w-full min-w-[120px] pl-8 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
                       placeholder="0.00"
                       id="newBasePrice"
                     />
@@ -476,7 +476,7 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
                       type="number"
                       min="0"
                       step="1"
-                      className="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+                      className="w-full min-w-[120px] pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
                       placeholder="0"
                       id="newBaseStock"
                     />
@@ -495,7 +495,7 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
                       type="number"
                       min="0"
                       step="1"
-                      className="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+                      className="w-full min-w-[120px] pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
                       placeholder="0"
                       id="newBaseMinStock"
                     />
@@ -514,7 +514,7 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
                       type="number"
                       min="0"
                       step="1"
-                      className="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+                      className="w-full min-w-[120px] pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
                       placeholder="0"
                       id="newBaseMaxStock"
                     />
@@ -526,7 +526,7 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
                   type="button"
                   onClick={addBasePrice}
                   disabled={!selectedBase}
-                  className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg transition-all duration-200"
+                  className="flex items-center gap-2 px-4 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm font-semibold text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg transition-all duration-200"
                 >
                   <Plus className="w-4 h-4" />
                   Add Base
@@ -552,26 +552,23 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
                   return (
                     <div
                       key={price.base_id}
-                      className="flex items-center justify-between p-4 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200"
+                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-2 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                          <DollarSign className="w-5 h-5 text-white" />
+                      <div className="flex items-center gap-1 mb-4 sm:mb-0">
+                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                          <DollarSign className="w-4 h-4 text-white" />
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-900 dark:text-white">
+                          <p className="font-semibold text-sm text-gray-900 dark:text-white">
                             {base?.name || 'Unknown Base'}
-                          </p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Base ID: {price.base_id}
                           </p>
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 w-full">
+                        <div>
                           <div className="relative">
-                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 font-medium">$</span>
+                            <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 font-medium">$</span>
                             <input
                               type="number"
                               value={price.unit_price}
@@ -579,15 +576,16 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
                               min="0"
                               step="0.01"
                               disabled={viewMode}
-                              className="w-32 pl-8 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="w-full min-w-[120px] pl-8 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              placeholder="0.00"
                             />
                           </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-right">
                             per {formData.size}
                           </p>
                         </div>
                         
-                        <div className="text-right">
+                        <div>
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 font-medium">Qty</span>
                             <input
@@ -597,7 +595,8 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
                               min="0"
                               step="1"
                               disabled={viewMode}
-                              className="w-32 pl-12 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="w-full min-w-[120px] pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              placeholder="0"
                             />
                           </div>
                           <div className="flex items-center justify-between mt-1">
@@ -610,7 +609,7 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
                           </div>
                         </div>
 
-                        <div className="text-right">
+                        <div>
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 font-medium">Qty</span>
                             <input
@@ -620,42 +619,45 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
                               min="0"
                               step="1"
                               disabled={viewMode}
-                              className="w-32 pl-12 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="w-full min-w-[120px] pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              placeholder="0"
                             />
                           </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-right">
                             Min Stock
                           </p>
                         </div>
 
-                        <div className="text-right">
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 font-medium">Qty</span>
-                            <input
-                              type="number"
-                              value={price.max_stock_level}
-                              onChange={(e) => handleBasePriceChange(price.base_id, 'max_stock_level', e.target.value)}
-                              min="0"
-                              step="1"
-                              disabled={viewMode}
-                              className="w-32 pl-12 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            />
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1">
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 font-medium">Qty</span>
+                              <input
+                                type="number"
+                                value={price.max_stock_level}
+                                onChange={(e) => handleBasePriceChange(price.base_id, 'max_stock_level', e.target.value)}
+                                min="0"
+                                step="1"
+                                disabled={viewMode}
+                                className="w-full min-w-[120px] pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                placeholder="0"
+                              />
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-right">
+                              Max Stock
+                            </p>
                           </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Max Stock
-                          </p>
+                          {!viewMode && (
+                            <button
+                              type="button"
+                              onClick={() => removeBasePrice(price.base_id)}
+                              className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                              title="Remove this base price"
+                            >
+                              <Minus className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
-                        
-                        {!viewMode && (
-                          <button
-                            type="button"
-                            onClick={() => removeBasePrice(price.base_id)}
-                            className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                            title="Remove this base price"
-                          >
-                            <Minus className="w-4 h-4" />
-                          </button>
-                        )}
                       </div>
                     </div>
                   );
@@ -714,7 +716,7 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
                   <button
                     type="button"
                     onClick={() => setShowDeleteConfirm(true)}
-                    className="flex items-center gap-2 px-6 py-3 text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-all duration-150"
+                    className="flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-all duration-150"
                     disabled={loading}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -727,14 +729,14 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-6 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-150"
+                  className="px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-150"
                   disabled={loading}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+                  className="flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
                   disabled={loading}
                 >
                   <Save className="w-4 h-4" />
@@ -756,7 +758,7 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="px-6 py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-150"
+                className="px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-150"
               >
                 Close
               </button>
@@ -788,7 +790,7 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
                   <button
                     type="button"
                     onClick={() => setShowDeleteConfirm(false)}
-                    className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-150"
+                    className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-150"
                     disabled={loading}
                   >
                     Cancel
@@ -796,7 +798,7 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
                   <button
                     type="button"
                     onClick={handleDelete}
-                    className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-all duration-150"
+                    className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-all duration-150"
                     disabled={loading}
                   >
                     {loading ? (
