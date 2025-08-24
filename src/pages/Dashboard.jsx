@@ -385,10 +385,10 @@ const Dashboard = () => {
                         </div>
                         <div className="flex items-center gap-4 text-sm">
                           <span className={`font-medium ${urgencyStyle.text}`}>
-                            {item.currentStock}{item.unit} left
+                            {item.currentStock} pcs left
                           </span>
                           <span className="text-slate-600 dark:text-slate-400">
-                            Min: {item.minStock}{item.unit}
+                            Min: {item.minStock} pcs
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-2">
