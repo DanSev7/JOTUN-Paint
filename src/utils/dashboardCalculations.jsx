@@ -108,6 +108,7 @@ export const calculateLowStockItems = (processedProducts, setLowStockItems, getS
             currentStock: base.stockLevel,
             minStock: base.minStockLevel || product.min_stock_level,
             unit: product.unit || 'pcs',
+            size: product.size,
             supplier: product.supplier || 'Jotun Ethiopia',
             category: product.category || 'Uncategorized',
             urgency,

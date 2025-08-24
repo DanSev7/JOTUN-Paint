@@ -390,6 +390,9 @@ const Dashboard = () => {
                           <span className="text-slate-600 dark:text-slate-400">
                             Min: {item.minStock} pcs
                           </span>
+                          <span className="text-slate-600 dark:text-slate-400">
+                            Size: {item.size} 
+                          </span>
                         </div>
                         <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-2">
                           <span>{item.category}</span>
