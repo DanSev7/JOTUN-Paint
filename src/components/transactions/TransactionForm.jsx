@@ -8,11 +8,11 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
     product_id: transaction?.product_id || '',
     base_id: transaction?.base_id || '',
     quantity: transaction?.quantity || 1,
-    unit_price: transaction?.unit_price || 0,
-    status: transaction?.status || 'pending',
+    unit_price: (transaction?.type === 'stock_in' || transaction?.type === 'stock_out') ? '0.00' : (transaction?.unit_price || '0.00'),
+    status: (transaction?.type === 'sale' || transaction?.type === 'purchase') ? 'pending' : (transaction?.status || 'pending'),
     transaction_date: transaction?.transaction_date || new Date().toISOString().split('T')[0],
     reference: transaction?.reference || '',
-    // notes: transaction?.notes || ''
+    notes: transaction?.notes || ''
   });
   
   const [products, setProducts] = useState([]);
@@ -22,12 +22,10 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
   const [error, setError] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Fetch products and bases on component mount
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch products
         const { data: productsData, error: productsError } = await supabase
           .from('products')
           .select('id, name, size');
@@ -35,7 +33,6 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
         if (productsError) throw productsError;
         setProducts(productsData || []);
 
-        // Fetch bases
         const { data: basesData, error: basesError } = await supabase
           .from('bases')
           .select('id, name');
@@ -43,7 +40,6 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
         if (basesError) throw basesError;
         setBases(basesData || []);
 
-        // If editing, fetch the product prices for the selected product
         if (transaction?.product_id) {
           fetchProductPrices(transaction.product_id);
         }
@@ -55,9 +51,8 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
     };
 
     fetchData();
-  }, []);
+  }, [transaction]);
 
-  // Fetch product prices when product changes
   const fetchProductPrices = async (productId) => {
     if (!productId) return;
     
@@ -70,13 +65,12 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
       if (pricesError) throw pricesError;
       setProductPrices(pricesData || []);
       
-      // If editing, set the base price
       if (transaction?.base_id) {
         const price = pricesData.find(p => p.base_id === transaction.base_id);
         if (price) {
           setFormData(prev => ({
             ...prev,
-            unit_price: price.unit_price,
+            unit_price: (formData.type === 'stock_in' || formData.type === 'stock_out') ? '0.00' : price.unit_price,
             base_id: transaction.base_id
           }));
         }
@@ -90,8 +84,7 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
     { id: 'sale', name: 'Sale', icon: <TrendingUp className="w-4 h-4" />, color: 'text-green-600' },
     { id: 'purchase', name: 'Purchase', icon: <TrendingDown className="w-4 h-4" />, color: 'text-blue-600' },
     { id: 'stock_in', name: 'Stock In', icon: <Package className="w-4 h-4" />, color: 'text-purple-600' },
-    { id: 'stock_out', name: 'Stock Out', icon: <Package className="w-4 h-4" />, color: 'text-orange-600' },
-    // { id: 'return', name: 'Return', icon: <TrendingDown className="w-4 h-4" />, color: 'text-red-600' }
+    { id: 'stock_out', name: 'Stock Out', icon: <Package className="w-4 h-4" />, color: 'text-orange-600' }
   ];
 
   const statuses = [
@@ -102,47 +95,49 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-
-    // When product changes, fetch its prices
-    if (name === 'product_id') {
-      fetchProductPrices(value);
-      // Reset base and price when product changes
-      setFormData(prev => ({
-        ...prev,
-        product_id: value,
-        base_id: '',
-        unit_price: 0
-      }));
+    
+    if (name === 'unit_price' && (formData.type === 'stock_in' || formData.type === 'stock_out')) {
+      return;
     }
 
-    // When base changes, update the price
-    if (name === 'base_id') {
-      const price = productPrices.find(p => p.base_id === value);
-      setFormData(prev => ({
-        ...prev,
-        base_id: value,
-        unit_price: price ? price.unit_price : 0
-      }));
-    }
+    setFormData(prev => {
+      const updatedData = { ...prev, [name]: value };
 
-    // Calculate total when quantity or price changes
-    if (name === 'quantity' || name === 'unit_price') {
-      setFormData(prev => {
+      if (name === 'product_id') {
+        fetchProductPrices(value);
+        updatedData.base_id = '';
+        updatedData.unit_price = (formData.type === 'stock_in' || formData.type === 'stock_out') ? '0.00' : '0.00';
+      }
+
+      if (name === 'base_id') {
+        const price = productPrices.find(p => p.base_id === value);
+        updatedData.unit_price = (formData.type === 'stock_in' || formData.type === 'stock_out') ? '0.00' : (price ? price.unit_price : '0.00');
+      }
+
+      if (name === 'quantity' || name === 'unit_price') {
         const quantity = name === 'quantity' ? parseFloat(value) : parseFloat(prev.quantity);
-        const unitPrice = name === 'unit_price' ? parseFloat(value) : parseFloat(prev.unit_price);
-        return {
-          ...prev,
-          [name]: value,
-          total_amount: quantity * unitPrice
-        };
-      });
-    }
+        const unitPrice = (formData.type === 'stock_in' || formData.type === 'stock_out') 
+          ? 0 
+          : (name === 'unit_price' ? parseFloat(value) : parseFloat(prev.unit_price));
+        updatedData.subtotal = quantity * unitPrice;
+        updatedData.total_amount = (formData.type === 'purchase') 
+          ? updatedData.subtotal * 1.12 
+          : updatedData.subtotal;
+      }
 
-    // Validate stock when quantity changes for sales/stock_out
+      if (name === 'type' && (value === 'stock_in' || value === 'stock_out')) {
+        updatedData.unit_price = '0.00';
+        updatedData.subtotal = 0;
+        updatedData.total_amount = 0;
+      }
+
+      if (name === 'type' && value === 'purchase') {
+        updatedData.status = 'pending';
+      }
+
+      return updatedData;
+    });
+
     if (name === 'quantity' && (formData.type === 'sale' || formData.type === 'stock_out') && formData.base_id) {
       const selectedPrice = productPrices.find(p => p.base_id === formData.base_id);
       if (selectedPrice) {
@@ -152,7 +147,7 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
         if (requestedQuantity > currentStock) {
           setError(`⚠️ Insufficient stock! Base ${selectedPrice.bases?.name || 'Unknown'} only has ${currentStock} pcs available.`);
         } else {
-          setError(null); // Clear error if stock is sufficient
+          setError(null);
         }
       }
     }
@@ -174,7 +169,6 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
     setError(null);
     
     try {
-      // Check stock availability for sales and stock_out transactions
       if ((formData.type === 'sale' || formData.type === 'stock_out') && formData.product_id && formData.base_id) {
         const selectedPrice = productPrices.find(p => p.base_id === formData.base_id);
         if (selectedPrice) {
@@ -187,14 +181,15 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
         }
       }
       
-      // For sales, automatically set status to completed
-      const status = formData.type === 'sale' ? 'completed' : formData.status;
+      const status = (formData.type === 'sale' || formData.type === 'purchase') ? 'completed' : formData.status;
       
       const transactionData = {
         ...formData,
         status,
         transaction_date: new Date(formData.transaction_date).toISOString(),
-        total_amount: parseFloat(formData.quantity) * parseFloat(formData.unit_price)
+        total_amount: (formData.type === 'purchase') 
+          ? parseFloat(formData.quantity) * parseFloat(formData.unit_price) * 1.12 
+          : parseFloat(formData.quantity) * parseFloat(formData.unit_price)
       };
 
       let resp;
@@ -211,7 +206,6 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
 
       if (resp.error) throw resp.error;
 
-      // Update stock levels based on transaction type
       if (formData.product_id && formData.base_id) {
         await updateStockLevels();
       }
@@ -225,14 +219,12 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
     }
   };
 
-  // Update stock levels based on transaction type
   const updateStockLevels = async () => {
     try {
       const quantity = parseInt(formData.quantity);
       const baseId = formData.base_id;
       const productId = formData.product_id;
 
-      // Get current stock level for this product-base combination
       const { data: currentPrice, error: fetchError } = await supabase
         .from('product_prices')
         .select('stock_level')
@@ -244,7 +236,6 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
 
       let newStockLevel = currentPrice.stock_level || 0;
 
-      // Update stock based on transaction type
       switch (formData.type) {
         case 'sale':
         case 'stock_out':
@@ -254,14 +245,10 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
         case 'stock_in':
           newStockLevel += quantity;
           break;
-        case 'return':
-          newStockLevel += quantity;
-          break;
         default:
           break;
       }
 
-      // Update the stock level
       const { error: updateError } = await supabase
         .from('product_prices')
         .update({ stock_level: newStockLevel })
@@ -272,7 +259,6 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
 
     } catch (err) {
       console.error('Failed to update stock levels:', err);
-      // Don't throw error here as transaction is already saved
     }
   };
 
@@ -299,14 +285,17 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
   const selectedType = transactionTypes.find(t => t.id === formData.type);
   const selectedProduct = products.find(p => p.id === formData.product_id);
   const selectedBase = bases.find(b => b.id === formData.base_id);
-  const totalAmount = parseFloat(formData.quantity) * parseFloat(formData.unit_price);
+  const subtotal = (formData.type === 'stock_in' || formData.type === 'stock_out') 
+    ? 0 
+    : parseFloat(formData.quantity) * parseFloat(formData.unit_price);
+  const totalAmount = (formData.type === 'purchase') 
+    ? subtotal * 1.12 
+    : subtotal;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Main Modal */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
         <div className="p-8">
-          {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
               <div className={`p-3 rounded-xl ${selectedType?.color || 'text-blue-600'} bg-blue-50 dark:bg-blue-900/30`}>
@@ -329,7 +318,6 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
             </button>
           </div>
 
-          {/* Error Message */}
           {error && (
             <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
               <div className="flex items-center gap-3">
@@ -340,7 +328,6 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Transaction Basic Info */}
             <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <FileText className="w-5 h-5" />
@@ -411,7 +398,6 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
               </div>
             </div>
 
-            {/* Product & Pricing */}
             <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <Package className="w-5 h-5" />
@@ -472,8 +458,6 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
                     }
                     return null;
                   })()}
-                  
-                  {/* Stock Validation Warning */}
                   {error && formData.base_id && (formData.type === 'sale' || formData.type === 'stock_out') && (
                     <div className="mt-2 px-3 py-2 rounded-lg text-sm bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-700">
                       {error}
@@ -489,7 +473,7 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
                     name="status"
                     value={formData.status}
                     onChange={handleChange}
-                    disabled={formData.type === 'sale'} // Auto-completed for sales
+                    disabled={formData.type === 'sale' || formData.type === 'purchase'}
                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 disabled:opacity-50"
                   >
                     {statuses.map(status => (
@@ -501,7 +485,7 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className={`grid ${formData.type === 'purchase' ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-6`}>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                     Quantity *
@@ -531,14 +515,33 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
                       name="unit_price"
                       value={formData.unit_price}
                       onChange={handleChange}
+                      disabled={formData.type === 'stock_in' || formData.type === 'stock_out' || !formData.base_id}
                       required
                       min="0"
                       step="0.01"
-                      disabled={!formData.base_id} // Price comes from base selection
                       className="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 disabled:opacity-50"
                     />
                   </div>
                 </div>
+
+                {formData.type === 'purchase' && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      Subtotal
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+                        <DollarSign className="w-5 h-5" />
+                      </div>
+                      <input
+                        type="text"
+                        value={subtotal.toFixed(2)}
+                        readOnly
+                        className="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-semibold"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -559,7 +562,6 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
               </div>
             </div>
 
-            {/* Notes */}
             <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <FileText className="w-5 h-5" />
@@ -580,7 +582,6 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="flex items-center justify-between pt-8 border-t border-gray-200 dark:border-gray-700">
               <div>
                 {transaction && (
@@ -619,7 +620,6 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 flex items-center justify-center z-[60] bg-black/30 backdrop-blur-sm">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 border border-gray-200 dark:border-gray-700">
