@@ -6,7 +6,7 @@ import Input from '../components/common/Input';
 import UserForm from '../components/userManagement/UserForm';
 import { useToast } from '../contexts/ToastContext';
 import supabase from '../services/supabase';
-import { useAuthStore } from '../store/useAuthStore'; // Updated to use the correct store
+import { useAuthStore } from '../store/useAuthStore';
 
 const roleMap = {
   admin: 'Admin',
@@ -15,9 +15,7 @@ const roleMap = {
 };
 
 const UserManagement = () => {
-  // Use the zustand store to get the user's role and loading status
-  const { role, loading: authLoading } = useAuthStore(); // Updated to use role instead of userRole
-
+  const { role, loading: authLoading } = useAuthStore();
   const { showSuccess, showError } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState([]);
@@ -32,7 +30,6 @@ const UserManagement = () => {
     const { data, error } = await supabase
       .from('user_profiles')
       .select('id, username, role, created_at');
-    console.log("role", role);
     if (error) {
       setError('Failed to fetch users');
     } else {
@@ -42,11 +39,10 @@ const UserManagement = () => {
   };
 
   useEffect(() => {
-    // Only fetch users after the auth state has been determined
     if (!authLoading) {
       fetchUsers();
     }
-  }, [authLoading]); // Rerun effect when authLoading state changes
+  }, [authLoading]);
 
   const getRoleIcon = (role) => {
     switch (role) {
@@ -109,7 +105,6 @@ const UserManagement = () => {
     setFormLoading(true);
     try {
       if (editUser) {
-        // Editing user
         const updateFields = {
           username: formData.username,
           role: formData.role,
@@ -124,7 +119,6 @@ const UserManagement = () => {
         if (error) throw error;
         showSuccess('User updated');
       } else {
-        // Adding user
         const hashed = await bcrypt.hash(formData.password, 10);
         const { error } = await supabase.from('user_profiles').insert([
           {
@@ -173,7 +167,6 @@ const UserManagement = () => {
                 Manage system users and their roles with ease
               </p>
             </div>
-            {/* Show Add User button only if the current user is an admin */}
             {role === 'admin' && (
               <Button
                 className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-3"
@@ -255,7 +248,7 @@ const UserManagement = () => {
         </div>
 
         {/* Users Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-2 sm:p-4">
           {isLoading ? (
             <div className="p-12 text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -274,30 +267,29 @@ const UserManagement = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-full text-sm">
                 <thead className="bg-gray-50 dark:bg-gray-700/50">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="w-[40%] px-3 py-2 sm:px-4 sm:py-2 text-left font-semibold text-gray-500 dark:text-gray-300 whitespace-nowrap">
                       User
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="w-[30%] px-3 py-2 sm:px-4 sm:py-2 text-left font-semibold text-gray-500 dark:text-gray-300 whitespace-nowrap">
                       Role
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="w-[20%] px-3 py-2 sm:px-4 sm:py-2 text-left font-semibold text-gray-500 dark:text-gray-300 whitespace-nowrap">
                       Created
                     </th>
-                    {/* Only show Actions column if the current user is an admin */}
                     {role === 'admin' && (
-                      <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      <th className="w-[10%] px-3 py-2 sm:px-4 sm:py-2 text-center font-semibold text-gray-500 dark:text-gray-300 whitespace-nowrap">
                         Actions
                       </th>
                     )}
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {filteredUsers.map((user, index) => (
                     <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="w-[40%] px-3 py-2 sm:px-4 sm:py-2 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className={`h-12 w-12 rounded-full ${getAvatarColor(user.username)} flex items-center justify-center shadow-md`}>
                             <span className="text-white font-semibold text-lg">
@@ -314,7 +306,7 @@ const UserManagement = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="w-[30%] px-3 py-2 sm:px-4 sm:py-2 whitespace-nowrap">
                         <div className="flex items-center">
                           {getRoleIcon(user.role)}
                           <span className={`ml-2 px-3 py-1.5 rounded-full text-xs font-semibold ${getRoleColor(user.role)}`}>
@@ -322,7 +314,7 @@ const UserManagement = () => {
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="w-[20%] px-3 py-2 sm:px-4 sm:py-2 whitespace-nowrap">
                         <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                           <Calendar className="w-4 h-4 mr-2" />
                           {new Date(user.created_at).toLocaleDateString('en-US', {
@@ -332,9 +324,8 @@ const UserManagement = () => {
                           })}
                         </div>
                       </td>
-                      {/* Only show actions if the current user is an admin */}
                       {role === 'admin' && (
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <td className="w-[10%] px-3 py-2 sm:px-4 sm:py-2 whitespace-nowrap text-center">
                           <div className="flex items-center justify-center gap-3">
                             <button
                               onClick={() => {
