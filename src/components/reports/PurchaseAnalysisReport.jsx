@@ -46,7 +46,7 @@ const StockInAnalysisReport = ({ transactions }) => {
 
   const renderTable = (rows) => (
     <div className="overflow-x-auto">
-      <table className="min-w-full text-xs sm:text-sm">
+      <table className="min-w-[900px] text-xs sm:text-sm">
         <thead>
           <tr className="bg-slate-100 dark:bg-slate-700/50">
             {headers.map(h => (
@@ -122,7 +122,7 @@ const StockInAnalysisReport = ({ transactions }) => {
           {renderTable(analysisRows)}
         </div>
         <div className="hidden md:block overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="min-w-[900px] text-sm">
             <thead>
               <tr className="bg-slate-100 dark:bg-slate-700/50">
                 {headers.map(h => (

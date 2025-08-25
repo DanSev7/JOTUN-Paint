@@ -121,7 +121,7 @@ const SalesAnalysisReport = ({ transactions }) => {
     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 sm:p-6 mb-6">
       <h4 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-4">{title}</h4>
       <div className="overflow-x-auto">
-        <table className="min-w-full text-xs sm:text-sm">
+        <table className="min-w-[900px] text-xs sm:text-sm">
           <thead>
             <tr className="bg-slate-100 dark:bg-slate-700/50">
               {tableHeaders.map(h => (
