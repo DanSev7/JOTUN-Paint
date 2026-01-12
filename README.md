@@ -1,4 +1,4 @@
-# 🎨 Jotun Paint Management System
+# 🎨 Jotun Paint Management System | JPMS
 
 A comprehensive paint inventory and stock management system built with React.js, Tailwind CSS, and Supabase.
 
