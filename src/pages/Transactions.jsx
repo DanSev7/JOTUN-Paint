@@ -275,9 +275,9 @@ const Transactions = () => {
       )}
 
       {!loading && !error && (
-        <div className="w-full bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-2 sm:p-4">
+        <div className="grid grid-cols-1 xl:grid-cols-1 gap-6 w-full bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-2 sm:p-4">
           <div className="overflow-x-auto">
-            <table className="min-w-[1000px] w-full text-sm">
+            <table className="w-full text-sm">
               <thead className="bg-slate-100 dark:bg-slate-700/50">
                 <tr>
                   {role === 'admin' && (

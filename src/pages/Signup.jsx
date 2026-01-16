@@ -27,7 +27,7 @@ const Signup = () => {
         .maybeSingle();
 
       if (existingUser) {
-        showError('Username already taken. Please choose another.');
+        showError('username already taken. Please choose another.');
         setLoading(false);
         return;
       }

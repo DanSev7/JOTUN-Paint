@@ -21,7 +21,7 @@ export default function UserList({ users, loading, error, onEdit, onDelete }) {
         <table className="w-full text-sm">
           <thead className="bg-slate-100 dark:bg-slate-700 text-left text-xs uppercase tracking-wider text-slate-500 dark:text-slate-300">
             <tr>
-              <th className="px-6 py-3">Username</th>
+              <th className="px-6 py-3">username</th>
               <th className="px-6 py-3">Role</th>
               <th className="px-6 py-3">Created</th>
               <th className="px-6 py-3">Actions</th>

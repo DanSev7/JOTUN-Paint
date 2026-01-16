@@ -333,7 +333,7 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
                 <FileText className="w-5 h-5" />
                 Transaction Details
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                     Transaction Type *

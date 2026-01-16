@@ -18,7 +18,7 @@ export default function UserForm({ initialUser, onSubmit, onCancel, loading }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!username.trim()) return setError('Username is required');
+    if (!username.trim()) return setError('username is required');
     if (!isEdit && !password) return setError('Password is required for new users');
     setError('');
     onSubmit({ username, role, password: password || undefined, id: initialUser?.id });

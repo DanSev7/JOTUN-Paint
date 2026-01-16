@@ -37,7 +37,7 @@ const TransactionDetails = ({ transaction, onClose }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full p-8 relative">
+    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-3xl w-full p-8 relative">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Transaction Details</h2>
         <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300">
