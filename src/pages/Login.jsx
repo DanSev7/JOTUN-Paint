@@ -123,9 +123,9 @@ const Login = () => {
             )}
           </button>
 
-          <div className="text-center text-sm text-slate-600 dark:text-slate-400 mt-2">
+          {/* <div className="text-center text-sm text-slate-600 dark:text-slate-400 mt-2">
             Don&apos;t have an account? <a href="/signup" className="text-blue-600 dark:text-blue-400 hover:underline font-semibold">Sign Up</a>
-          </div>
+          </div> */}
         </form>
       </div>
     </div>
