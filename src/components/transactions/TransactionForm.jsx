@@ -206,8 +206,14 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
 
       if (resp.error) throw resp.error;
 
-      if (formData.product_id && formData.base_id) {
+      // console.log('Transaction saved with status:', status);
+      // console.log('Will update stock?', formData.product_id && formData.base_id && status === 'completed');
+
+      if (formData.product_id && formData.base_id && status === 'completed') {
+        // console.log('Updating stock levels...');
         await updateStockLevels();
+      } else {
+        console.log('Skipping stock update - status is:', status);
       }
 
       if (onSave) onSave();
