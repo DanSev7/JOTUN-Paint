@@ -17,7 +17,7 @@ const ProductForm = ({ onClose, product = null, onSave, viewMode = false }) => {
   const [error, setError] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const sizes = ['3L', '10L'];
+  const sizes = ['3L', '10L', '15L'];
 
   const categories = [
     { id: 'Interior', name: 'Interior Paints', icon: <Paintbrush className="w-4 h-4" /> },
