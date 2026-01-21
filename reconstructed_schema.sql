@@ -89,6 +89,7 @@ COMMENT ON TABLE user_profiles IS 'Application users with roles';
 
 -- Optional: Initial Seed Data for Bases (Common in paint stores)
 INSERT INTO bases (name) VALUES 
+('White'),
 ('Base A'),
 ('Base B'),
 ('Base C')
