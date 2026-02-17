@@ -248,111 +248,113 @@ const UserManagement = () => {
         </div>
 
         {/* Users Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-2 sm:p-4">
-          {isLoading ? (
-            <div className="p-12 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-500 dark:text-gray-400 text-lg">Loading users...</p>
-            </div>
-          ) : error ? (
-            <div className="p-12 text-center">
-              <div className="text-red-500 text-lg">{error}</div>
-            </div>
-          ) : filteredUsers.length === 0 ? (
-            <div className="p-12 text-center">
-              <Users className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-500 dark:text-gray-400 text-lg">
-                {searchTerm ? 'No users found matching your search.' : 'No users found.'}
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-full text-sm">
-                <thead className="bg-gray-50 dark:bg-gray-700/50">
-                  <tr>
-                    <th className="w-[40%] px-3 py-2 sm:px-4 sm:py-2 text-left font-semibold text-gray-500 dark:text-gray-300 whitespace-nowrap">
-                      User
-                    </th>
-                    <th className="w-[30%] px-3 py-2 sm:px-4 sm:py-2 text-left font-semibold text-gray-500 dark:text-gray-300 whitespace-nowrap">
-                      Role
-                    </th>
-                    <th className="w-[20%] px-3 py-2 sm:px-4 sm:py-2 text-left font-semibold text-gray-500 dark:text-gray-300 whitespace-nowrap">
-                      Created
-                    </th>
-                    {role === 'admin' && (
-                      <th className="w-[10%] px-3 py-2 sm:px-4 sm:py-2 text-center font-semibold text-gray-500 dark:text-gray-300 whitespace-nowrap">
-                        Actions
+        <div className='grid grid-cols-1 xl:grid-cols-1 gap-6 w-full bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-2 sm:p-4'>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-2 sm:p-4">
+            {isLoading ? (
+              <div className="p-12 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-500 dark:text-gray-400 text-lg">Loading users...</p>
+              </div>
+            ) : error ? (
+              <div className="p-12 text-center">
+                <div className="text-red-500 text-lg">{error}</div>
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="p-12 text-center">
+                <Users className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400 text-lg">
+                  {searchTerm ? 'No users found matching your search.' : 'No users found.'}
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-full text-sm">
+                  <thead className="bg-gray-50 dark:bg-gray-700/50">
+                    <tr>
+                      <th className="w-[40%] px-3 py-2 sm:px-4 sm:py-2 text-left font-semibold text-gray-500 dark:text-gray-300 whitespace-nowrap">
+                        User
                       </th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {filteredUsers.map((user, index) => (
-                    <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150">
-                      <td className="w-[40%] px-3 py-2 sm:px-4 sm:py-2 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className={`h-12 w-12 rounded-full ${getAvatarColor(user.username)} flex items-center justify-center shadow-md`}>
-                            <span className="text-white font-semibold text-lg">
-                              {user.username.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                              {user.username}
-                            </div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">
-                              User #{index + 1}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="w-[30%] px-3 py-2 sm:px-4 sm:py-2 whitespace-nowrap">
-                        <div className="flex items-center">
-                          {getRoleIcon(user.role)}
-                          <span className={`ml-2 px-3 py-1.5 rounded-full text-xs font-semibold ${getRoleColor(user.role)}`}>
-                            {roleMap[user.role] || user.role}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="w-[20%] px-3 py-2 sm:px-4 sm:py-2 whitespace-nowrap">
-                        <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                          <Calendar className="w-4 h-4 mr-2" />
-                          {new Date(user.created_at).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
-                          })}
-                        </div>
-                      </td>
+                      <th className="w-[30%] px-3 py-2 sm:px-4 sm:py-2 text-left font-semibold text-gray-500 dark:text-gray-300 whitespace-nowrap">
+                        Role
+                      </th>
+                      <th className="w-[20%] px-3 py-2 sm:px-4 sm:py-2 text-left font-semibold text-gray-500 dark:text-gray-300 whitespace-nowrap">
+                        Created
+                      </th>
                       {role === 'admin' && (
-                        <td className="w-[10%] px-3 py-2 sm:px-4 sm:py-2 whitespace-nowrap text-center">
-                          <div className="flex items-center justify-center gap-3">
-                            <button
-                              onClick={() => {
-                                setEditUser(user);
-                                setShowForm(true);
-                              }}
-                              className="p-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all duration-150"
-                              title="Edit user"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteUser(user.id)}
-                              className="p-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-150"
-                              title="Delete user"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
+                        <th className="w-[10%] px-3 py-2 sm:px-4 sm:py-2 text-center font-semibold text-gray-500 dark:text-gray-300 whitespace-nowrap">
+                          Actions
+                        </th>
                       )}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {filteredUsers.map((user, index) => (
+                      <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150">
+                        <td className="w-[40%] px-3 py-2 sm:px-4 sm:py-2 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className={`h-12 w-12 rounded-full ${getAvatarColor(user.username)} flex items-center justify-center shadow-md`}>
+                              <span className="text-white font-semibold text-lg">
+                                {user.username.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                                {user.username}
+                              </div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
+                                User #{index + 1}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="w-[30%] px-3 py-2 sm:px-4 sm:py-2 whitespace-nowrap">
+                          <div className="flex items-center">
+                            {getRoleIcon(user.role)}
+                            <span className={`ml-2 px-3 py-1.5 rounded-full text-xs font-semibold ${getRoleColor(user.role)}`}>
+                              {roleMap[user.role] || user.role}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="w-[20%] px-3 py-2 sm:px-4 sm:py-2 whitespace-nowrap">
+                          <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                            <Calendar className="w-4 h-4 mr-2" />
+                            {new Date(user.created_at).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </div>
+                        </td>
+                        {role === 'admin' && (
+                          <td className="w-[10%] px-3 py-2 sm:px-4 sm:py-2 whitespace-nowrap text-center">
+                            <div className="flex items-center justify-center gap-3">
+                              <button
+                                onClick={() => {
+                                  setEditUser(user);
+                                  setShowForm(true);
+                                }}
+                                className="p-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all duration-150"
+                                title="Edit user"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUser(user.id)}
+                                className="p-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-150"
+                                title="Delete user"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Add/Edit Modal */}
