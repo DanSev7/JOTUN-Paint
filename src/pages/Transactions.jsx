@@ -466,7 +466,7 @@ const Transactions = () => {
                       <select
                         value={transaction.status}
                         onChange={(e) => handleStatusChange(transaction, e.target.value)}
-                        className={`w-full px-1 py-1 rounded-lg text-xs font-medium border-0 cursor-pointer focus:ring-2 focus:ring-blue-500 ${getStatusColor(transaction.status)}`}
+                        className={`px-2 py-1 rounded-lg text-xs font-medium border-0 cursor-pointer focus:ring-2 focus:ring-blue-500 ${getStatusColor(transaction.status)}`}
                         onClick={(e) => e.stopPropagation()}
                       >
                         <option value="pending">Pending</option>
