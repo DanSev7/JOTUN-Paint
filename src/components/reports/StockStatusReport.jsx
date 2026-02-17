@@ -80,6 +80,12 @@ const StockStatusReport = ({ products, transactions }) => {
       return ts >= dayStart && ts < dayEnd;
     });
 
+    // Transactions that happened strictly AFTER the selected date (Future relative to report date)
+    const futureTransactions = transactions.filter(t => {
+      const ts = new Date(t.transaction_date || t.created_at);
+      return ts >= dayEnd;
+    });
+
     products.forEach(product => {
       const category = (product.category || '').toLowerCase();
       const isInterior = category.includes('interior');
@@ -88,6 +94,8 @@ const StockStatusReport = ({ products, transactions }) => {
       const basePrices = baseStockByProduct[product.id] || [];
       basePrices.forEach(price => {
         const key = `${product.id}-${price.base_id}`;
+
+        // Activity for the selected day
         const receiving = txToday
           .filter(t => t.product_id === product.id && t.base_id === price.base_id && (t.type === 'stock_in' || t.type === 'purchase'))
           .reduce((sum, t) => sum + (t.quantity || 0), 0);
@@ -95,18 +103,30 @@ const StockStatusReport = ({ products, transactions }) => {
           .filter(t => t.product_id === product.id && t.base_id === price.base_id && (t.type === 'sale' || t.type === 'stock_out'))
           .reduce((sum, t) => sum + (t.quantity || 0), 0);
 
-        const ending = price.stock_level || 0; // Current stock level
-        const beginning = ending - receiving + issuance; // Approximation for start of day
-        const reorderPoint = price.min_stock_level || 0; // Use base-specific min_stock_level
-        const avgDaily = (recentSales[key] || 0) / 7; // Last 7 days average
+        // Calculate adjustments from future transactions to get historical ending balance
+        const futureReceived = futureTransactions
+          .filter(t => t.product_id === product.id && t.base_id === price.base_id && (t.type === 'stock_in' || t.type === 'purchase'))
+          .reduce((sum, t) => sum + (t.quantity || 0), 0);
+
+        const futureIssued = futureTransactions
+          .filter(t => t.product_id === product.id && t.base_id === price.base_id && (t.type === 'sale' || t.type === 'stock_out'))
+          .reduce((sum, t) => sum + (t.quantity || 0), 0);
+
+        // Current stock (DB) - Future Received + Future Issued = Historical Ending Balance
+        const currentStock = price.stock_level || 0;
+        const ending = currentStock - futureReceived + futureIssued;
+
+        const beginning = ending - receiving + issuance; // Start of the selected day
+        const reorderPoint = price.min_stock_level || 0;
+        const avgDaily = (recentSales[key] || 0) / 7;
         const eoq = price.max_stock_level - price.min_stock_level || 0;
-        const maxStock = price.max_stock_level || reorderPoint + eoq; // Use max_stock_level, fallback to EOQ
+        const maxStock = price.max_stock_level || reorderPoint + eoq;
         const qtyToOrder = Math.max(0, maxStock - ending);
-        const variation = ending - reorderPoint; // Positive means above reorder point
+        const variation = ending - reorderPoint;
 
         const row = {
           'Product name': product.name,
-          'Size': product.size || 'N/A', // Add Size field
+          'Size': product.size || 'N/A',
           'Base': price.base_name,
           'Begining balance': Math.max(0, beginning),
           'Daily receiving(pcs)': receiving,
@@ -207,11 +227,10 @@ const StockStatusReport = ({ products, transactions }) => {
             <button
               onClick={exportInterior}
               disabled={stockStatusInterior.length === 0}
-              className={`inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white rounded-lg ${
-                stockStatusInterior.length === 0
+              className={`inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white rounded-lg ${stockStatusInterior.length === 0
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700'
-              }`}
+                }`}
             >
               <Download className="w-4 h-4" /> Export XLSX
             </button>
@@ -226,11 +245,10 @@ const StockStatusReport = ({ products, transactions }) => {
             <button
               onClick={exportExterior}
               disabled={stockStatusExterior.length === 0}
-              className={`inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white rounded-lg ${
-                stockStatusExterior.length === 0
+              className={`inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white rounded-lg ${stockStatusExterior.length === 0
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700'
-              }`}
+                }`}
             >
               <Download className="w-4 h-4" /> Export XLSX
             </button>

@@ -14,7 +14,7 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
     reference: transaction?.reference || '',
     notes: transaction?.notes || ''
   });
-  
+
   const [products, setProducts] = useState([]);
   const [bases, setBases] = useState([]);
   const [productPrices, setProductPrices] = useState([]);
@@ -29,14 +29,14 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
         const { data: productsData, error: productsError } = await supabase
           .from('products')
           .select('id, name, size');
-        
+
         if (productsError) throw productsError;
         setProducts(productsData || []);
 
         const { data: basesData, error: basesError } = await supabase
           .from('bases')
           .select('id, name');
-        
+
         if (basesError) throw basesError;
         setBases(basesData || []);
 
@@ -55,16 +55,16 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
 
   const fetchProductPrices = async (productId) => {
     if (!productId) return;
-    
+
     try {
       const { data: pricesData, error: pricesError } = await supabase
         .from('product_prices')
         .select('base_id, unit_price, stock_level, bases(name)')
         .eq('product_id', productId);
-      
+
       if (pricesError) throw pricesError;
       setProductPrices(pricesData || []);
-      
+
       if (transaction?.base_id) {
         const price = pricesData.find(p => p.base_id === transaction.base_id);
         if (price) {
@@ -95,7 +95,7 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     if (name === 'unit_price' && (formData.type === 'stock_in' || formData.type === 'stock_out')) {
       return;
     }
@@ -116,12 +116,12 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
 
       if (name === 'quantity' || name === 'unit_price') {
         const quantity = name === 'quantity' ? parseFloat(value) : parseFloat(prev.quantity);
-        const unitPrice = (formData.type === 'stock_in' || formData.type === 'stock_out') 
-          ? 0 
+        const unitPrice = (formData.type === 'stock_in' || formData.type === 'stock_out')
+          ? 0
           : (name === 'unit_price' ? parseFloat(value) : parseFloat(prev.unit_price));
         updatedData.subtotal = quantity * unitPrice;
-        updatedData.total_amount = (formData.type === 'purchase') 
-          ? updatedData.subtotal * 1.12 
+        updatedData.total_amount = (formData.type === 'purchase')
+          ? updatedData.subtotal * 1.12
           : updatedData.subtotal;
       }
 
@@ -143,7 +143,7 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
       if (selectedPrice) {
         const currentStock = selectedPrice.stock_level || 0;
         const requestedQuantity = parseInt(value) || 0;
-        
+
         if (requestedQuantity > currentStock) {
           setError(`⚠️ Insufficient stock! Base ${selectedPrice.bases?.name || 'Unknown'} only has ${currentStock} pcs available.`);
         } else {
@@ -167,28 +167,28 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    
+
     try {
       if ((formData.type === 'sale' || formData.type === 'stock_out') && formData.product_id && formData.base_id) {
         const selectedPrice = productPrices.find(p => p.base_id === formData.base_id);
         if (selectedPrice) {
           const currentStock = selectedPrice.stock_level || 0;
           const requestedQuantity = parseInt(formData.quantity) || 0;
-          
+
           if (requestedQuantity > currentStock) {
             throw new Error(`Insufficient stock! Base ${selectedPrice.bases?.name || 'Unknown'} only has ${currentStock} pcs available. Requested: ${requestedQuantity} pcs`);
           }
         }
       }
-      
-      const status = (formData.type === 'sale' || formData.type === 'purchase') ? 'completed' : formData.status;
-      
+
+      const status = (formData.type === 'sale' || formData.type === 'purchase' || formData.type === 'stock_out') ? 'completed' : formData.status;
+
       const transactionData = {
         ...formData,
         status,
         transaction_date: new Date(formData.transaction_date).toISOString(),
-        total_amount: (formData.type === 'purchase') 
-          ? parseFloat(formData.quantity) * parseFloat(formData.unit_price) * 1.12 
+        total_amount: (formData.type === 'purchase')
+          ? parseFloat(formData.quantity) * parseFloat(formData.unit_price) * 1.12
           : parseFloat(formData.quantity) * parseFloat(formData.unit_price)
       };
 
@@ -277,7 +277,7 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
         .from('transactions')
         .delete()
         .eq('id', transaction.id);
-      
+
       if (resp.error) throw resp.error;
       if (onSave) onSave();
       onClose();
@@ -292,11 +292,11 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
   const selectedType = transactionTypes.find(t => t.id === formData.type);
   const selectedProduct = products.find(p => p.id === formData.product_id);
   const selectedBase = bases.find(b => b.id === formData.base_id);
-  const subtotal = (formData.type === 'stock_in' || formData.type === 'stock_out') 
-    ? 0 
+  const subtotal = (formData.type === 'stock_in' || formData.type === 'stock_out')
+    ? 0
     : parseFloat(formData.quantity) * parseFloat(formData.unit_price);
-  const totalAmount = (formData.type === 'purchase') 
-    ? subtotal * 1.12 
+  const totalAmount = (formData.type === 'purchase')
+    ? subtotal * 1.12
     : subtotal;
 
   return (
@@ -480,7 +480,7 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
                     name="status"
                     value={formData.status}
                     onChange={handleChange}
-                    disabled={formData.type === 'sale' || formData.type === 'purchase'}
+                    disabled={formData.type === 'sale' || formData.type === 'purchase' || formData.type === 'stock_out'}
                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 disabled:opacity-50"
                   >
                     {statuses.map(status => (
@@ -603,7 +603,7 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
                   </button>
                 )}
               </div>
-              
+
               <div className="flex items-center gap-3">
                 <button
                   type="button"
@@ -634,28 +634,28 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
               <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Trash2 className="w-8 h-8 text-red-600 dark:text-red-400" />
               </div>
-              
+
               <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">
                 Delete Transaction
               </h3>
-              
+
               <p className="mb-8 text-gray-600 dark:text-gray-400 leading-relaxed">
-                Are you sure you want to delete transaction <span className="font-semibold text-gray-900 dark:text-white">{transaction?.reference}</span>? 
+                Are you sure you want to delete transaction <span className="font-semibold text-gray-900 dark:text-white">{transaction?.reference}</span>?
                 This action cannot be undone and will permanently remove all transaction data.
               </p>
-              
+
               <div className="flex justify-center gap-4">
-                <button 
-                  type="button" 
-                  onClick={() => setShowDeleteConfirm(false)} 
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(false)}
                   disabled={loading}
                   className="px-6 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 disabled:opacity-50"
                 >
                   Cancel
                 </button>
-                <button 
-                  type="button" 
-                  onClick={handleDelete} 
+                <button
+                  type="button"
+                  onClick={handleDelete}
                   disabled={loading}
                   className="px-6 py-2 text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 rounded-xl transition-all duration-200 disabled:opacity-50"
                 >

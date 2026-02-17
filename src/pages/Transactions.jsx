@@ -49,7 +49,7 @@ const Transactions = () => {
   const handleDelete = async () => {
     if (!selectedTransactions.length) return;
     setDeleteLoading(true);
-    
+
     try {
       const { error } = await supabase
         .from('transactions')
@@ -57,7 +57,7 @@ const Transactions = () => {
         .in('id', selectedTransactions.map(t => t.id));
 
       if (error) throw error;
-      
+
       setTransactions(transactions.filter(t => !selectedTransactions.map(s => s.id).includes(t.id)));
       setSelectedTransactions([]);
       setShowDeleteConfirm(false);
@@ -65,6 +65,84 @@ const Transactions = () => {
       setError(err.message || 'Failed to delete transactions');
     } finally {
       setDeleteLoading(false);
+    }
+  };
+
+  const updateStockLevels = async (transaction, newStatus, oldStatus) => {
+    if (!transaction.product_id || !transaction.base_id) return;
+
+    // Logic for handling stock updates based on status change
+    // This is a simplified version of what's in TransactionForm
+    // We only care if meaningful status changes happen like pending <-> completed
+
+    const isBecomingCompleted = newStatus === 'completed' && oldStatus !== 'completed';
+    const wasCompleted = oldStatus === 'completed' && newStatus !== 'completed';
+
+    if (!isBecomingCompleted && !wasCompleted) return;
+
+    try {
+      const { data: currentPrice, error: fetchError } = await supabase
+        .from('product_prices')
+        .select('stock_level')
+        .eq('product_id', transaction.product_id)
+        .eq('base_id', transaction.base_id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      let newStockLevel = currentPrice.stock_level || 0;
+      const quantity = parseInt(transaction.quantity) || 0;
+
+      // Calculate new stock level based on transaction type and direction
+      const multiplier = isBecomingCompleted ? 1 : -1;
+
+      switch (transaction.type) {
+        case 'stock_in':
+        case 'purchase':
+          newStockLevel += (quantity * multiplier);
+          break;
+        case 'stock_out':
+        case 'sale':
+          newStockLevel -= (quantity * multiplier);
+          break;
+        default:
+          break;
+      }
+
+      await supabase
+        .from('product_prices')
+        .update({ stock_level: newStockLevel })
+        .eq('product_id', transaction.product_id)
+        .eq('base_id', transaction.base_id);
+
+    } catch (err) {
+      console.error('Failed to update stock levels:', err);
+    }
+  };
+
+  const handleStatusChange = async (transaction, newStatus) => {
+    if (transaction.status === newStatus) return;
+    const oldStatus = transaction.status;
+
+    // Optimistic update
+    setTransactions(prev => prev.map(t =>
+      t.id === transaction.id ? { ...t, status: newStatus } : t
+    ));
+
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .update({ status: newStatus })
+        .eq('id', transaction.id);
+
+      if (error) throw error;
+      await updateStockLevels(transaction, newStatus, oldStatus);
+    } catch (err) {
+      // Revert on error
+      setTransactions(prev => prev.map(t =>
+        t.id === transaction.id ? { ...t, status: oldStatus } : t
+      ));
+      setError(err.message || 'Failed to update status');
     }
   };
 
@@ -86,8 +164,8 @@ const Transactions = () => {
   ];
 
   const filteredTransactions = transactions.filter(transaction => {
-    const matchesSearch = 
-      transaction.products?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const matchesSearch =
+      transaction.products?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       transaction.reference?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = selectedType === 'all' || transaction.type === selectedType;
     return matchesSearch && matchesType;
@@ -189,7 +267,7 @@ const Transactions = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
@@ -372,11 +450,10 @@ const Transactions = () => {
                       </div>
                     </td>
                     <td className="w-[14%] px-3 py-2 sm:px-4 sm:py-2 whitespace-nowrap">
-                      <div className={`text-sm font-medium truncate ${
-                        transaction.type === 'purchase' || transaction.type === 'stock_out' 
-                          ? 'text-red-600 dark:text-red-400' 
-                          : 'text-slate-900 dark:text-white'
-                      }`}>
+                      <div className={`text-sm font-medium truncate ${transaction.type === 'purchase' || transaction.type === 'stock_out'
+                        ? 'text-red-600 dark:text-red-400'
+                        : 'text-slate-900 dark:text-white'
+                        }`}>
                         {formatCurrency(transaction.total_amount)}
                       </div>
                     </td>
@@ -386,9 +463,16 @@ const Transactions = () => {
                       </div>
                     </td>
                     <td className="w-[12%] px-3 py-2 sm:px-4 sm:py-2 whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium truncate ${getStatusColor(transaction.status)}`}>
-                        {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
-                      </span>
+                      <select
+                        value={transaction.status}
+                        onChange={(e) => handleStatusChange(transaction, e.target.value)}
+                        className={`w-full px-1 py-1 rounded-lg text-xs font-medium border-0 cursor-pointer focus:ring-2 focus:ring-blue-500 ${getStatusColor(transaction.status)}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
                     </td>
                     <td className="w-[14%] px-3 py-2 sm:px-4 sm:py-2 whitespace-nowrap text-right text-sm font-medium flex items-center gap-1">
                       <button
@@ -504,13 +588,13 @@ const Transactions = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="p-6">
               <p className="text-gray-700 dark:text-gray-300 mb-6">
                 Are you sure you want to delete {selectedTransactions.length} transaction{selectedTransactions.length > 1 ? 's' : ''}?
                 This will permanently remove the selected transaction{selectedTransactions.length > 1 ? 's' : ''}.
               </p>
-              
+
               <div className="flex justify-end gap-3">
                 <button
                   type="button"
