@@ -245,7 +245,8 @@ const TransactionForm = ({ onClose, transaction = null, onSave }) => {
       switch (formData.type) {
         case 'sale':
         case 'stock_out':
-          newStockLevel = Math.max(0, newStockLevel - quantity);
+          // newStockLevel = Math.max(0, newStockLevel - quantity);
+          newStockLevel -= quantity;
           break;
         case 'purchase':
         case 'stock_in':
